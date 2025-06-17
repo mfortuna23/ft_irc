@@ -17,6 +17,7 @@
 # include <signal.h>
 # include <cstring>
 # include <cerrno>
+# include <vector>
 
 # define BLUE "\033[34m"
 # define RED "\033[31m"

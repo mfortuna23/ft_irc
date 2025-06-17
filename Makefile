@@ -1,4 +1,4 @@
-NAME    = ft_irc
+NAME    = ircserv
 CPP     = c++
 CPPFLG  = -Wall -Wextra -Werror -std=c++98
 SRC     = main.cpp
