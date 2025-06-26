@@ -5,8 +5,13 @@ Server::Server(){
 	ServSockFd = -1;
 }
 
-void Server::serverInit(){
-	this->port = 4444;
+void Server::serverInit(int newPort, std::string newPassword){
+	if (newPort > 65535) // TODO parsing
+		throw (std::runtime_error("invalid port"));
+	if (newPassword.empty()) // TODO parsing
+		throw (std::runtime_error("invalid password"));
+	port = newPort;
+	password = newPassword;
 	servSock();
 	std::cout << GREEN << "Server <" << ServSockFd << "> Connected" << RESET << std::endl;
 	std::cout << "Waiting to accept a connection ..." << std::endl;

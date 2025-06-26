@@ -1,16 +1,17 @@
 #include "irc.hpp"
 
 int main (int argc, char **argv){
-	(void)argc;
-	(void)argv;
-
+	if (argc != 3){
+		std::cout << RED << "Invalid Arguments" << RESET << std::endl;
+		return (0);
+	}
 	std::cout << GREEN << "Building server ..." << RESET << std::endl;
 	Server myServer;
 	try{
 		signal(SIGINT, Server::signalHandler);
 		signal(SIGQUIT, Server::signalHandler);
-		myServer.serverInit();
-		sleep(300);
+		myServer.serverInit(std::atoi(argv[1]), argv[2]);
+		sleep(3);
 	}
 	catch (const std::exception& e){
 		myServer.closeFds();

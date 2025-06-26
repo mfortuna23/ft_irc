@@ -7,13 +7,14 @@
 class Server {
 	private :
 		int port;
+		std::string password;
 		int ServSockFd;
 		static bool signal;
 		std::vector<Client> clients;
 		std::vector<struct pollfd> fds;
 	public :
 		Server();
-		void serverInit();
+		void serverInit(int newPort, std::string newPassword);
 		void servSock();
 		void acceptNewClient();
 		void recvNewData(int fd); //from registered client
