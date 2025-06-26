@@ -1,7 +1,7 @@
 NAME    = ircserv
 CPP     = c++
 CPPFLG  = -Wall -Wextra -Werror -std=c++98
-SRC     = main.cpp
+SRC     = main.cpp Server.cpp
 OBJDIR  = obj
 OBJS    = $(SRC:%.cpp=$(OBJDIR)/%.o)
 
@@ -15,7 +15,7 @@ $(OBJDIR)/%.o: %.cpp
 	$(CPP) $(CPPFLG) -g -I . -c $< -o $@
 
 clean:
-	rm -f $(OBJS)
+	rm -fr $(OBJDIR)
 
 fclean: clean
 	rm -f $(NAME)

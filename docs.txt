@@ -1,2 +1,85 @@
 links e afins ...
 
+┌───────────────────────────┐
+│       IRC SERVER          │ ←─── Your program
+│                           │
+│  ┌─────────────────────┐  │
+│  │ Listening Socket     │  │ ←─── Bound to port 6667
+│  │  (e.g. fd 3)         │  │
+│  └─────────────────────┘  │
+│             │              │
+│             ▼              │
+│    Accepts new clients     │
+│             │              │
+│   ┌─────────┴─────────┐    │
+│   │ Connected Socket 1 │   │ ←── Client A (e.g. telnet, irssi)
+│   │   (e.g. fd 4)      │   │
+│   └─────────┬─────────┘    │
+│             │              │
+│   ┌─────────▼─────────┐    │
+│   │ Connected Socket 2 │   │ ←── Client B
+│   │   (e.g. fd 5)      │   │
+│   └─────────┬─────────┘    │
+│             │              │
+│         ...more clients    │
+└────────────▼──────────────┘
+
+        Network Cloud
+      ╱                ╲
+┌──────────┐     ┌──────────┐
+│ Client A │     │ Client B │ ←── Existing IRC clients
+│ (irssi)  │     │ (telnet) │
+└──────────┘     └──────────┘
+
+
+https://beej.us/guide/bgnet/pdf/bgnet_a4_c_1.pdf
+https://modern.ircdocs.horse/
+
+
+
+SERVER Socket :
+
+struct sockaddr_in {
+ sa_family_t     sin_family; // integer representing the address family. (IPv4 usually AF_INET)
+ in_port_t       sin_port; // 16-bit int repreent port number
+ struct  in_addr sin_addr;
+ char            sin_zero[8]; // useless :D
+};
+
+struct in_addr {
+ in_addr_t s_addr; // IPV4 adress / INADDR_ANY - means any IP address the socket will be bound to any available network interfaces on the host
+};
+
+
+the struct pollfd is a structure used for monitoring file descriptors for I/O events. 
+It’s commonly employed with the poll() system call to perform multiplexed I/O, 
+allowing a program to efficiently wait for events on multiple file descriptors 
+simultaneously without having to resort to blocking I/O operations.
+
+struct pollfd {
+ int     fd; //-> file descriptor
+ short   events;//-> requested events
+ short   revents;//-> returned events
+};
+
+
+events - a bitmask(operações bit a bit para manipular e representar conjuntos de flags de forma eficiente dentro de um int) specifies the events to monitor for the given fd
+	- common events : read write, error hang-up. POLLIN(any data recived) POLLHUP(fd hung up or closed)
+
+revents - bitmask indicator of evnets that occured in fd, filled by poll() function upon return and indicates the events that triggerd the poll
+
+SOCKET int socket(int domain, int type, int protocol)
+ is a system call used to create a new socket of specified type annd return a fd tha can be used to refer to that socket
+ domain = specifies the communication domain or address family for the socket.
+ type = type of communication semantics for the socket.
+ protocol = specifies the protocol to be used with the socket. this argument should be set to 0, indicating that the system should choose the apropriate protocol
+
+int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+
+the setsckopt() is used to set options on socket. it allows you to configue various socket-level option to control the behavior.
+level = protocol level. SOL_SOCKET is the socket itself.
+
+
+
+
+
