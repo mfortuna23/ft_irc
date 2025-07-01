@@ -15,6 +15,10 @@ void Server::serverInit(int newPort, std::string newPassword){
 	servSock();
 	std::cout << GREEN << "Server <" << ServSockFd << "> Connected" << RESET << std::endl;
 	std::cout << "Waiting to accept a connection ..." << std::endl;
+	while (true){
+		if (poll(&fds.at(0), fds.size(), -1) < 0)
+			throw (std::runtime_error("Poll() failed"));
+	}
 }
 
 void Server::servSock(){
@@ -42,12 +46,57 @@ void Server::servSock(){
 	fds.push_back(NewPoll);
 }
 
+//TODO provavelmente add username and stuff
 void Server::acceptNewClient(){
+	Client a;
+	a.setFd(accept(ServSockFd, NULL, NULL));
+	if (a.getFd() < 1)
+		throw(std::runtime_error("faild to accept client"));
+	set_nonblocking(a.getFd());
+	struct pollfd client_fd;
+	client_fd.fd = a.getFd();
+	client_fd.events = POLLIN;
+	fds.push_back(client_fd);
+	std::cout << GREEN << "New client connected: fd " << a.getFd() << RESET << std::endl;
+}
 
+void sendMsg(int fd, const char *buffer, size_t len){
+	size_t total_sent = 0;
+
+	while (total_sent < len)
+	{
+		int sent = send(fd, buffer + total_sent, len - total_sent, 0);
+        if (sent <= 0)
+            return ;
+        total_sent += sent;
+    }
+}
+
+void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
+	for (size_t i = 0; i < fds.size(); i++){
+		if (fds.at(i).fd != fd_client)
+			sendMsg(fds.at(i).fd, buffer, len);
+	}
 }
 
 void Server::recvNewData(int fd){
-	(void)fd;
+	char buffer[BUFFER_SIZE];
+	ssize_t bytes = recv(fd, buffer, BUFFER_SIZE - 1, 0); // n bytes lidos
+	if (bytes <= 0){
+		std::cout << "Client disconnected: fd " << fd << std::endl;
+		for (size_t i = 0; i < fds.size(); i++){
+			if (fds.at(i).fd == fd){
+				fds.erase(fds.begin() + i);
+				close(fd);
+				return ;
+			}
+		}
+	}
+	buffer[bytes] = 0;
+	std::string msg(buffer); // crio um objeto do tipo string.
+	std::cout << "[fd " << fd << "] " << msg; // escrevo a mensagem recebida.
+	std::string response = ":server PONG :" + msg; // crio um outro objeto tipo string estilo protocolo irc.
+	this->sendMsgAll(fd, response.c_str(), response.size());  // o cliente recebe a confirmacao da mensagem que enviou.
 }
 
 void Server::signalHandler (int signum){
