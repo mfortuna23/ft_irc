@@ -18,6 +18,16 @@ void Server::serverInit(int newPort, std::string newPassword){
 	while (true){
 		if (poll(&fds.at(0), fds.size(), -1) < 0)
 			throw (std::runtime_error("Poll() failed"));
+		for (size_t i = 0; i < fds.size(); i++) // tinha esquecido de add essa parte 😅
+		{
+			if ((fds[i].revents & POLLIN) == false)
+				continue ;
+			if (fds[i].fd == ServSockFd)
+				acceptNewClient();
+			else
+				recvNewData(fds[i].fd);
+				
+		}
 	}
 }
 
