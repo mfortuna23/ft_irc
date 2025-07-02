@@ -11,7 +11,6 @@ int main (int argc, char **argv){
 		signal(SIGINT, Server::signalHandler);
 		signal(SIGQUIT, Server::signalHandler);
 		myServer.serverInit(std::atoi(argv[1]), argv[2]);
-		sleep(3);
 	}
 	catch (const std::exception& e){
 		myServer.closeFds();
