@@ -29,6 +29,10 @@
 # define MAGENTA "\033[35m"
 # define CYAN "\033[36m"
 # define RESET "\033[0m"
+# define BUFFER_SIZE 512
 
+
+/*###### UTILS #####*/
+void set_nonblocking(int fd);
 
 #endif
