@@ -18,6 +18,7 @@
 # include <cstring>
 # include <cerrno>
 # include <vector>
+# include <cstdlib>
 
 # include "Client.hpp"
 # include "Server.hpp"
