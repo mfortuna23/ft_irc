@@ -18,7 +18,7 @@ void Server::serverInit(int newPort, std::string newPassword){
 	while (true){
 		if (poll(&fds.at(0), fds.size(), -1) < 0)
 			throw (std::runtime_error("Poll() failed"));
-		for (size_t i = 0; i < fds.size(); i++) // tinha esquecido de add essa parte 😅
+		for (size_t i = 0; i < fds.size(); i++)
 		{
 			if ((fds[i].revents & POLLIN) == false)
 				continue ;
@@ -34,12 +34,13 @@ void Server::serverInit(int newPort, std::string newPassword){
 void Server::servSock(){
 	struct sockaddr_in add;
 	struct pollfd NewPoll;
+	std::memset(&add, 0, sizeof(add));
 	add.sin_family = AF_INET; // set address familiy to ipv4
 	add .sin_port = htons(this->port); //convert the port to network byte order (big endian)
 	add.sin_addr.s_addr = INADDR_ANY; //set the address to any local machine address
 
-	ServSockFd = socket(AF_INET, SOCK_STREAM, 0); // create server socket
-	if (ServSockFd == -1)
+	ServSockFd = socket(PF_INET, SOCK_STREAM, 0); // create server socket
+	if (ServSockFd < 0)
 		throw (std::runtime_error("faild to create socket"));
 	int en = 1;
 	if (setsockopt(ServSockFd, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en)) == -1) //set the socket option (SO_REUSEADDR) to reuse the address
