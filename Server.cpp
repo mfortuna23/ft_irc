@@ -18,14 +18,14 @@ void Server::serverInit(int newPort, std::string newPassword){
 	while (true){
 		if (poll(&fds.at(0), fds.size(), -1) < 0)
 			throw (std::runtime_error("Poll() failed"));
-		for (size_t i = 0; i < fds.size(); i++)
-		{
-			if ((fds[i].revents & POLLIN) == false)
-				continue ;
-			if (fds[i].fd == ServSockFd)
-				acceptNewClient();
-			else
-				recvNewData(fds[i].fd);
+		for (size_t i = 0; i < fds.size(); i++){
+			if ((fds[i].revents & POLLIN) == true){
+				if (fds[i].fd == ServSockFd)
+					acceptNewClient();
+				else
+					recvNewData(fds[i].fd);
+			}
+			if ((fds[i].revents & POLLOUT) == true) // clients not active
 				
 		}
 	}
@@ -36,7 +36,7 @@ void Server::servSock(){
 	struct pollfd NewPoll;
 	std::memset(&add, 0, sizeof(add));
 	add.sin_family = AF_INET; // set address familiy to ipv4
-	add .sin_port = htons(this->port); //convert the port to network byte order (big endian)
+	add.sin_port = htons(this->port); //convert the port to network byte order (big endian)
 	add.sin_addr.s_addr = INADDR_ANY; //set the address to any local machine address
 
 	ServSockFd = socket(PF_INET, SOCK_STREAM, 0); // create server socket
@@ -59,6 +59,7 @@ void Server::servSock(){
 
 //TODO provavelmente add username and stuff
 void Server::acceptNewClient(){
+	std::string msg;
 	Client a;
 	a.setFd(accept(ServSockFd, NULL, NULL));
 	if (a.getFd() < 1)
@@ -66,28 +67,48 @@ void Server::acceptNewClient(){
 	set_nonblocking(a.getFd());
 	struct pollfd client_fd;
 	client_fd.fd = a.getFd();
-	client_fd.events = POLLIN;
+	client_fd.events = POLLOUT;
+	sendMsg(a.getFd(), "Password:", 9);
+	// wait for response check password
+	// char buffer[BUFFER_SIZE];
+	// if (msg != password){
+	// 	close(a.getFd());
+	// 	return ;}
+	// client_fd.events = POLLIN;
 	fds.push_back(client_fd);
+	clients.map::insert(a.getFd(), a);
 	std::cout << GREEN << "New client connected: fd " << a.getFd() << RESET << std::endl;
-}
-
-void sendMsg(int fd, const char *buffer, size_t len){
-	size_t total_sent = 0;
-
-	while (total_sent < len)
-	{
-		int sent = send(fd, buffer + total_sent, len - total_sent, 0);
-        if (sent <= 0)
-            return ;
-        total_sent += sent;
-    }
 }
 
 void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
 	for (size_t i = 0; i < fds.size(); i++){
-		if (fds.at(i).fd != fd_client)
-			sendMsg(fds.at(i).fd, buffer, len);
+		if (fds[i].fd != fd_client)
+			sendMsg(fds[i].fd, buffer, len);
 	}
+}
+
+void Server::recvData(int fd){
+	char buffer[BUFFER_SIZE];
+	ssize_t bytes = recv(fd, buffer, BUFFER_SIZE - 1, 0); // n bytes lidos
+	if (bytes <= 0){
+		std::cout << "Client disconnected: fd " << fd << std::endl;
+		for (size_t i = 0; i < fds.size(); i++){
+			if (fds[i].fd == fd){
+				fds.erase(fds.begin() + i);
+				close(fd);
+				return ;
+			}
+		}
+	}
+	buffer[bytes] = 0;
+	std::string msg(buffer); // crio um objeto do tipo string.
+	if (password != msg){
+		close(fd);
+		clients.find(fd);
+		return ;
+	}
+
+
 }
 
 void Server::recvNewData(int fd){
@@ -96,7 +117,7 @@ void Server::recvNewData(int fd){
 	if (bytes <= 0){
 		std::cout << "Client disconnected: fd " << fd << std::endl;
 		for (size_t i = 0; i < fds.size(); i++){
-			if (fds.at(i).fd == fd){
+			if (fds[i].fd == fd){
 				fds.erase(fds.begin() + i);
 				close(fd);
 				return ;
