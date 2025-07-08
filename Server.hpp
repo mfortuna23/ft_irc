@@ -10,7 +10,7 @@ class Server {
 		std::string password;
 		int ServSockFd;
 		static bool signal;
-		std::vector<Client> clients;
+		//std::vector<Client> clients;
 		std::vector<struct pollfd> fds;
 	public :
 		Server();
