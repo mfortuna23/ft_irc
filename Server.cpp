@@ -133,7 +133,7 @@ void Server::recvNewData(int fd)
 	if (cli->get_buffer().size() > 512) {
 		std::string err = "ERROR :Line too long\r\n";
 		send(fd, err.c_str(), err.size(), 0);
-		std::cout << RED << "Line too long from fd " << fd << ". YOU ARE NOT a good IRC client. Disconnecting." << RESET << std::endl;
+		std::cout << RED << "Line too long from fd " << fd << ". YOU ARE NOT following IRC protocol. Disconnecting." << RESET << std::endl;
 		close(fd);
 		clearClients(fd);
 		return;
@@ -142,7 +142,6 @@ void Server::recvNewData(int fd)
 	while (true)
 	{
 		size_t pos = cli->get_buffer().find("\r\n");
-		size_t alt = cli->get_buffer().find('\n');
 
 		if (pos != std::string::npos) // se encontro \r\n
 		{
@@ -155,20 +154,8 @@ void Server::recvNewData(int fd)
 			std::string response = ":server PONG :" + line + "\r\n";
 			send(fd, response.c_str(), response.size(), 0);
 		}
-		else if (alt != std::string::npos) // se encontro apenas o \n
-		{
-			// se achou só '\n' (caso do nc), tolera
-			std::string line = cli->get_buffer().substr(0, alt);
-			cli->get_buffer().erase(0, alt + 1);
-
-			std::cout << "[fd " << fd << "] " << line << " (\\n only)" << std::endl;// todo apenas para debug
-
-			// todo substituir futuramente por handleCommand(cli, line)
-			std::string response = ":server PONG :" + line + "\r\n";
-			send(fd, response.c_str(), response.size(), 0);
-		}
 		else
-			break; // nao ha mais linhas para ler.
+			break;
 	}
 }
 
@@ -193,7 +180,7 @@ void Server::closeFds(){
 void Server::clearClients(int fd){
 	for (size_t i = 0; i < fds.size(); i++){
 		if(fds.at(i).fd == fd){
-			fds.erase(fds.begin()) + i;
+			fds.erase(fds.begin() + i);
 			break ;
 		}
 	}
