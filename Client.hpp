@@ -6,6 +6,7 @@
 class Client {
 	private:
 		int fd;
+		std::string username;
 		std::string IpAdr;
 		std::string nickname;
 		std::string username;
