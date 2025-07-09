@@ -31,7 +31,7 @@
 # define MAGENTA "\033[35m"
 # define CYAN "\033[36m"
 # define RESET "\033[0m"
-# define BUFFER_SIZE 512
+# define BUFFER_SIZE 512 // No message may exceed 512 characters in length
 
 
 /*###### UTILS #####*/

@@ -8,19 +8,27 @@ class Client {
 		int fd;
 		std::string username;
 		std::string IpAdr;
-		bool active;
+		std::string nickname;
+		std::string username;
+		bool 		is_registered;
+		std::string buffer;// acumula os dados recebidos até um "\r\n"
 	public :
-		char buffer[512];
-		Client(){active = false;};
-		int getFd(){return fd;};
-		std::string getUsername(void){return username;};
-		std::string getIp(){return IpAdr;};
-		bool getActive(void){return active;};
+		Client();
+		Client(int fd, const std::string &ip);
+		~Client(){};
+		// setters
 		void setFd(int other){fd = other;};
 		void setIp(std::string other){IpAdr = other;};
-		void setUsername(std::string name){username = name;};
-		void setActive(void){active = true;};
-		~Client(){};
+		void set_nickname(std::string nick){nickname = nick;};
+		void set_username(std::string user){username = user;};
+		void set_registration(bool y){is_registered = y;};
+		// getters
+		int getFd(){return fd;};
+		std::string getIp(){return IpAdr;};
+		std::string get_nick(){return nickname;};
+		std::string get_user(){return username;};
+		bool get_is_registered(){return is_registered;};
+		std::string &get_buffer(){return buffer;};
 } ;
 
 #endif
