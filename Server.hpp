@@ -10,6 +10,7 @@ class Server {
 		std::string password;
 		int ServSockFd;
 		static bool signal;
+		static bool	running;
 		std::map<int, Client> clients;
 		std::vector<struct pollfd> fds;
 	public :
@@ -17,8 +18,8 @@ class Server {
 		void serverInit(int newPort, std::string newPassword);
 		void servSock();
 		void acceptNewClient();
-		void recvData(int fd); //not registered
-		void recvNewData(int fd); //from registered client
+		void recvNewData(int fd); //recieve cmds
+		void dealWData(int fd); //deal w cmds ??
 		static void signalHandler (int signum);
 		void sendMsgAll(int fd_client, const char *buffer, size_t len);
 		void closeFds();

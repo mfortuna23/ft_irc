@@ -10,6 +10,7 @@ class Client {
 		std::string IpAdr;
 		bool active;
 	public :
+		char buffer[512];
 		Client(){active = false;};
 		int getFd(){return fd;};
 		std::string getUsername(void){return username;};
