@@ -4,6 +4,8 @@
 # define SERVER_HPP
 # include "irc.hpp"
 
+class Client;
+
 class Server {
 	private :
 		int port;
@@ -22,6 +24,7 @@ class Server {
 		void sendMsgAll(int fd_client, const char *buffer, size_t len);
 		void closeFds();
 		void clearClients(int fd);
+		Client* getClientByFd(int fd);
 		~Server();
 } ;
 
