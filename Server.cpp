@@ -26,10 +26,6 @@ void Server::serverInit(int newPort, std::string newPassword){
 				else
 					recvNewData(fds[i].fd); // comd recv
 			}
-			else if ((fds[i].events & POLLOUT) == true){
-				std::cout << "HELL!!!!!!" << std::endl;
-				dealWData(fds[i].fd); // deal cmd ?
-			}
 		}
 	}
 }
@@ -97,59 +93,6 @@ Client* Server::getClientByFd(int fd) // nova funcao para selecionar o client qu
 	return NULL;
 }
 
-
-void sendMsg(int fd, const char *buffer, size_t len){
-	size_t total_sent = 0;
-
-	while (total_sent < len)
-	{
-		int sent = send(fd, buffer + total_sent, len - total_sent, 0);
-        if (sent <= 0)
-            return ;
-        total_sent += sent;
-    }
-// =======
-// 	std::string msg;
-// 	Client a;
-// 	a.setFd(accept(ServSockFd, NULL, NULL));
-// 	if (a.getFd() < 1)
-// 		throw(std::runtime_error("faild to accept client"));
-// 	set_nonblocking(a.getFd());
-// 	struct pollfd client_fd;
-// 	client_fd.fd = a.getFd();
-// 	client_fd.events = POLLIN;
-// 	fds.push_back(client_fd);
-// 	clients.insert(std::make_pair(a.getFd(), a));
-// 	std::cout << GREEN << "New client connected: fd " << a.getFd() << RESET << std::endl;
-// 	a.setActive();
-// }
-
-// void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
-// 	for (size_t i = 0; i < fds.size(); i++){
-// 		std::map<int, Client>::iterator it = clients.find(fds[i].fd);
-// 		Client& client = it->second;
-// 		if (fds[i].fd != fd_client && client.getActive())
-// 			sendMsg(fds[i].fd, buffer, len);
-// 	}
-// >>>>>>> maria
-}
-
-void Server::dealWData(int fd){
-	std::map<int, Client>::iterator it = clients.find(fd);
-	Client& client = it->second;
-	std::string msg(client.buffer); // crio um objeto do tipo string.
-	std::string response = ":server PONG :" + msg; // crio um outro objeto tipo string estilo protocolo irc.
-	this->sendMsgAll(fd, response.c_str(), response.size());  // o cliente recebe a confirmacao da mensagem que enviou.
-	for (size_t i = 0; i < fds.size(); i++){
-		if (fds[i].fd == fd){
-			fds[i].revents = POLLIN;
-			std::cout << fd << " client is in POLLIN" << std::endl;
-		}
-	}
-	std::cout << "[fd " << fd << " ] " << msg; // escrevo a mensagem recebida.
-	std::memset(client.buffer, 0, BUFFER_SIZE);
-}
-
 void Server::recvNewData(int fd)
 {
 	Client* cli = getClientByFd(fd);
@@ -184,37 +127,23 @@ void Server::recvNewData(int fd)
 			std::string line = cli->get_buffer().substr(0, pos); // cria uma substring da posicao 0 até \r\n (sem inclui-lo)
 			cli->get_buffer().erase(0, pos + 2); // remove os caracteres da string de 0 ate o \r\n (incluidos)
 
-			std::cout << "[fd " << fd << "] " << line << std::endl; //todo apenas para debug
+			std::cout << "[fd " << fd << "] " << line << std::endl; //TODO apenas para debug
 
-			// todo substituir futuramente por handleCommand(cli, line)
+			//TODO substituir futuramente por handleCommand(cli, line)
 			std::string response = ":server PONG :" + line + "\r\n";
-			send(fd, response.c_str(), response.size(), 0);
-// =======
-// void Server::recvNewData(int fd){
-// 	std::map<int, Client>::iterator it = clients.find(fd);
-// 	Client& client = it->second;
-// 	ssize_t bytes = recv(fd, client.buffer, BUFFER_SIZE - 1, 0); // n bytes lidos
-// 	if (bytes <= 0){
-// 		std::cout << "Client disconnected: fd " << fd << std::endl;
-// 		for (size_t i = 0; i < fds.size(); i++){
-// 			if (fds[i].fd == fd){
-// 				fds.erase(fds.begin() + i);
-// 				close(fd);
-// 				return ;
-// 			}
-// >>>>>>> maria
+			sendMsgAll(fd, response.c_str(), response.size());
 		}
 		else
 			break;
 	}
-// =======
-// 	client.buffer[bytes] = 0;
-// 	for (size_t i = 0; i < fds.size(); i++){
-// 		if (fds[i].fd == fd){
-// 			fds[i].revents = POLLOUT;
-// 			std::cout << fd << " client is in POLLOUT" << std::endl;}
-// 	}
-// >>>>>>> maria
+}
+
+void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
+	for (size_t i = 0; i < fds.size(); i++){
+		if (fds[i].fd != fd_client )
+			//if (getClientByFd(fd_client)->get_is_registered()) //TODO REGISTERED client
+				sendMsg(fds[i].fd, buffer, len);
+	}
 }
 
 void Server::signalHandler (int signum){
@@ -243,7 +172,12 @@ void Server::clearClients(int fd){
 			break ;
 		}
 	}
-	clients.erase(fd);
+	for (size_t i = 0; i < fds.size(); i++){
+		if(clients.at(i).getFd() == fd){
+			clients.erase(clients.begin() + i);
+			break ;
+		}
+	}
 }
 
 Server::~Server(){}
