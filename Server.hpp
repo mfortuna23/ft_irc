@@ -13,15 +13,14 @@ class Server {
 		int ServSockFd;
 		static bool signal;
 		static bool	running;
-		std::map<int, Client> clients;
+		std::vector<Client> clients;
 		std::vector<struct pollfd> fds;
 	public :
 		Server();
 		void serverInit(int newPort, std::string newPassword);
 		void servSock();
 		void acceptNewClient();
-		void recvNewData(int fd); //recieve cmds
-		void dealWData(int fd); //deal w cmds ??
+		void recvNewData(int fd);
 		static void signalHandler (int signum);
 		void sendMsgAll(int fd_client, const char *buffer, size_t len);
 		void closeFds();
