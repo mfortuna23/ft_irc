@@ -56,7 +56,6 @@ void Server::servSock(){
 	fds.push_back(NewPoll);
 }
 
-//TODO provavelmente add username and stuff
 void Server::acceptNewClient(){
 	struct sockaddr_in client_addr; // 
 	socklen_t addr_len = sizeof(client_addr);
@@ -118,26 +117,60 @@ void Server::recvNewData(int fd)
 		return;
 	}
 
-	while (true)
-	{
+	while (true){
 		size_t pos = cli->get_buffer().find("\r\n");
-
 		if (pos != std::string::npos) // se encontro \r\n
 		{
 			std::string line = cli->get_buffer().substr(0, pos); // cria uma substring da posicao 0 até \r\n (sem inclui-lo)
 			cli->get_buffer().erase(0, pos + 2); // remove os caracteres da string de 0 ate o \r\n (incluidos)
-
 			std::cout << "[fd " << fd << "] " << line << std::endl; //TODO apenas para debug
-
-			//TODO substituir futuramente por handleCommand(cli, line)
-			std::string response = ":server PONG :" + line + "\r\n";
-			sendMsgAll(fd, response.c_str(), response.size());
+			handleCommand(cli, line);
 		}
 		else
 			break;
 	}
 }
 
+void Server::handleCommand(Client *a, std::string line){
+	if (isThisCmd(line, "PASS")){
+			return ;
+		}
+	if (isThisCmd(line, "NICK")){
+			return ;
+		}
+	if (isThisCmd(line, "USER")){
+			return ;
+		}
+	if (isThisCmd(line, "PING")){
+			return ;
+		}
+	if (isThisCmd(line, "PONG")){
+			return ;
+		}
+	if (isThisCmd(line, "QUIT")){
+			return ;
+		}
+	if (isThisCmd(line, "JOIN")){
+			return ;
+		}
+	if (isThisCmd(line, "KICK")){
+			return ;
+		}
+	if (isThisCmd(line, "INVITE")){
+			return ;
+		}
+	if (isThisCmd(line, "TOPIC")){
+			return ;
+		}
+	if (isThisCmd(line, "MODE")){
+			return ;
+		}
+	std::string response = ":server PONG :" + line + "\r\n";
+	sendMsgAll(a->getFd(), response.c_str(), response.size());
+}
+
+
+//TODO add channel
 void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
 	for (size_t i = 0; i < fds.size(); i++){
 		if (fds[i].fd != fd_client )
