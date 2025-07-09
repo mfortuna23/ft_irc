@@ -4,13 +4,15 @@
 # define SERVER_HPP
 # include "irc.hpp"
 
+class Client;
+
 class Server {
 	private :
 		int port;
 		std::string password;
 		int ServSockFd;
 		static bool signal;
-		//std::vector<Client> clients;
+		std::vector<Client> clients;
 		std::vector<struct pollfd> fds;
 	public :
 		Server();
@@ -22,6 +24,7 @@ class Server {
 		void sendMsgAll(int fd_client, const char *buffer, size_t len);
 		void closeFds();
 		void clearClients(int fd);
+		Client* getClientByFd(int fd);
 		~Server();
 } ;
 

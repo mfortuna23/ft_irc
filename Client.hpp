@@ -27,6 +27,7 @@ class Client {
 		std::string get_nick(){return nickname;};
 		std::string get_user(){return username;};
 		bool get_is_registered(){return is_registered;};
+		std::string &get_buffer(){return buffer;};
 } ;
 
 #endif
