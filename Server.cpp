@@ -132,39 +132,17 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *a, std::string line){
-	if (isThisCmd(line, "PASS")){
+	std::string cmds[11] = {"PASS", "NICK", "USER", "PING", "PONG", "QUIT", "JOIN", "KICK",
+	"INVITE", "TOPIC", "MODE"};
+	void (*fCmds[11])(Client *, std::string) = {&voidCmd, &voidCmd, &voidCmd, &voidCmd, 
+		&voidCmd, &voidCmd, &voidCmd, &voidCmd, &voidCmd, &voidCmd, &voidCmd};
+	for (size_t i = 0; i < cmds->size(); i++){
+		if (isThisCmd(line, cmds[i])){
+			std::cout << "ive recived " << cmds[i] << std::endl;
+			fCmds[i](a, line);
 			return ;
 		}
-	if (isThisCmd(line, "NICK")){
-			return ;
-		}
-	if (isThisCmd(line, "USER")){
-			return ;
-		}
-	if (isThisCmd(line, "PING")){
-			return ;
-		}
-	if (isThisCmd(line, "PONG")){
-			return ;
-		}
-	if (isThisCmd(line, "QUIT")){
-			return ;
-		}
-	if (isThisCmd(line, "JOIN")){
-			return ;
-		}
-	if (isThisCmd(line, "KICK")){
-			return ;
-		}
-	if (isThisCmd(line, "INVITE")){
-			return ;
-		}
-	if (isThisCmd(line, "TOPIC")){
-			return ;
-		}
-	if (isThisCmd(line, "MODE")){
-			return ;
-		}
+	}
 	std::string response = ":server PONG :" + line + "\r\n";
 	sendMsgAll(a->getFd(), response.c_str(), response.size());
 }
