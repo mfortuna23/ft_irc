@@ -19,6 +19,7 @@
 # include <cerrno>
 # include <vector>
 # include <cstdlib>
+# include <map>
 
 # include "Client.hpp"
 # include "Server.hpp"
@@ -35,5 +36,6 @@
 
 /*###### UTILS #####*/
 void set_nonblocking(int fd);
+void sendMsg(int fd, const char *buffer, size_t len);
 
 #endif
