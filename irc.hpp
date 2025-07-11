@@ -16,6 +16,7 @@
 # include <poll.h>
 # include <signal.h>
 # include <cstring>
+# include <sstream> 
 # include <cerrno>
 # include <vector>
 # include <cstdlib>
@@ -37,5 +38,7 @@
 /*###### UTILS #####*/
 void set_nonblocking(int fd);
 void sendMsg(int fd, const char *buffer, size_t len);
+bool isThisCmd(const std::string& line, std::string cmd);
+void voidCmd(Client *a, std::string line){(void)a; (void)line;};
 
 #endif

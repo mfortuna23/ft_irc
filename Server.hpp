@@ -21,6 +21,7 @@ class Server {
 		void servSock();
 		void acceptNewClient();
 		void recvNewData(int fd);
+		void handleCommand(Client *a, std::string line);
 		static void signalHandler (int signum);
 		void sendMsgAll(int fd_client, const char *buffer, size_t len);
 		void closeFds();

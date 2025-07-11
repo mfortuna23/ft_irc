@@ -15,3 +15,11 @@ void sendMsg(int fd, const char *buffer, size_t len){
         total_sent += sent;
     }
 }
+
+bool isThisCmd(const std::string& line, std::string cmd){
+	std::istringstream iss(line);
+	std::string firstWord;
+	if (iss >> firstWord)
+		return firstWord == cmd;
+	return false;
+}
