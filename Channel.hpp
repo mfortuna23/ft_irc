@@ -16,7 +16,7 @@ class Channel{
 		~Channel(){};
 } ;
 
-std::ostream &operator<<(std::ostream &out, const Channel& other){
+inline std::ostream &operator<<(std::ostream &out, const Channel& other){
 	out << other.getName();
 	return out;
 }
