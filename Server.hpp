@@ -27,7 +27,6 @@ class Server {
 		Client* getClientByFd(int fd);
 		//cmds
 		void handleCommand(Client *a, std::string line);
-		bool isThisCmd(const std::string& line, std::string cmd);
 		void voidCmd(Client *a, std::string line){(void)a; (void)line;};
 		//channel cmds
 		void joinCmd(Client *a, std::string line);

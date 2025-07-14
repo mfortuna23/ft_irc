@@ -39,7 +39,8 @@
 /* ###### UTILS ###### */
 void set_nonblocking(int fd);
 void sendMsg(int fd, const char *buffer, size_t len);
-
+std::string toUpper(const std::string &str);
+bool isThisCmd(const std::string& line, std::string cmd);
 /* ##### COMMANDS ##### */
 
 #endif
