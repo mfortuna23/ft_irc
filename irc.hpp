@@ -24,6 +24,7 @@
 
 # include "Client.hpp"
 # include "Server.hpp"
+# include "Channel.hpp"
 
 # define BLUE "\033[34m"
 # define RED "\033[31m"
@@ -35,10 +36,10 @@
 # define BUFFER_SIZE 512 // No message may exceed 512 characters in length
 
 
-/*###### UTILS #####*/
+/* ###### UTILS ###### */
 void set_nonblocking(int fd);
 void sendMsg(int fd, const char *buffer, size_t len);
-bool isThisCmd(const std::string& line, std::string cmd);
-void voidCmd(Client *a, std::string line){(void)a; (void)line;};
+
+/* ##### COMMANDS ##### */
 
 #endif
