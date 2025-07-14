@@ -11,6 +11,7 @@ class Client {
 		std::string username;
 		bool 		is_registered;
 		std::string buffer;// acumula os dados recebidos até um "\r\n"
+		Channel		*myChannel;
 	public :
 		Client();
 		Client(int fd, const std::string &ip);
