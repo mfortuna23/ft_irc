@@ -32,6 +32,7 @@ class Server {
 		void handleCommand(Client *a, std::string line);
 		bool isThisCmd(const std::string& line, std::string cmd);
 		void voidCmd(Client *a, std::string line);
+		void cmdCAP(Client *cli, std::string line);
 		void cmdPASS(Client *cli, std::string line);
 		void cmdNICK(Client *cli, std::string line);
 		void cmdUSER(Client *cli, std::string line);
