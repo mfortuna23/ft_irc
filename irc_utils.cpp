@@ -23,11 +23,3 @@ std::string toUpper(const std::string &str) {
 	std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
 	return upper;
 }
-
-bool isThisCmd(const std::string& line, std::string cmd){
-	std::istringstream iss(line);
-	std::string firstWord;
-	if (iss >> firstWord)
-		return (toUpper(firstWord) == cmd);
-	return false;
-}

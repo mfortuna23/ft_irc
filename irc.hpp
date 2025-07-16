@@ -33,14 +33,13 @@
 # define MAGENTA "\033[35m"
 # define CYAN "\033[36m"
 # define RESET "\033[0m"
-# define BUFFER_SIZE 512 // No message may exceed 512 characters in length
+# define BUFFER_SIZE 512 // No message may exceed 512 characters/bytes in length
 
 
 /* ###### UTILS ###### */
 void set_nonblocking(int fd);
 void sendMsg(int fd, const char *buffer, size_t len);
 std::string toUpper(const std::string &str);
-bool isThisCmd(const std::string& line, std::string cmd);
 /* ##### COMMANDS ##### */
 
 #endif
