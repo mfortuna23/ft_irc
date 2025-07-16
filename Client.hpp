@@ -36,8 +36,8 @@ class Client {
 		bool get_is_registered(){return is_registered;};
 		int get_regist_steps(){return regist_3steps;};
 		std::string &get_buffer(){return buffer;};
-		void set_channel(Channel *c) { myChannel = c; }
-		Channel* get_channel() { return myChannel; }
+		Channel* getChannel() { return myChannel; }
+		void newChannel(Channel *other){myChannel = other;};
 } ;
 
 #endif

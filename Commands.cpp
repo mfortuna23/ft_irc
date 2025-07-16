@@ -79,8 +79,36 @@ void Server::cmdUSER(Client *cli, std::string line) {
 		cli->confirm_regist_step(this);
 }
 
+Channel* Server::getChannelByName(std::string name)
+{
+	for (size_t i = 0; i < channels.size(); ++i){
+		if (channels[i].getName() == name)
+			return &channels[i];
+	}
+	return NULL;
+}
 
-// void	Server::joinCmd(Client *a, std::string line){
-// 	if (channels.empty())
-		
-// }
+void	Server::cmdJOIN(Client *a, std::string line){
+	std::istringstream iss(line);
+	std::string cmd, name;
+	std::ostringstream msg;
+	iss >> cmd >> name;
+	if (name.empty()){
+		msg << RED << "Missing arguments for JOIN cmd" << RESET << "\r\n";
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	Channel *tv;
+	Channel c;
+	tv = &c;
+	if (channels.empty() || getChannelByName(name) == NULL) {
+		tv->setName(name);
+		channels.push_back(*tv);
+	}
+	else
+		tv = getChannelByName(name);
+	tv->addClient(a);
+	a->newChannel(tv);
+	msg << GREEN << "You joined " << *tv << " channel!" << RESET << "\r\n";
+	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+}
