@@ -6,6 +6,8 @@
 
 class Client;
 
+class Channel;
+
 class Server {
 	private :
 		int port;
@@ -25,12 +27,18 @@ class Server {
 		static void signalHandler (int signum);
 		void sendMsgAll(int fd_client, const char *buffer, size_t len);
 		Client* getClientByFd(int fd);
+		std::string get_pass();
 		//cmds
 		void handleCommand(Client *a, std::string line);
 		bool isThisCmd(const std::string& line, std::string cmd);
-		void voidCmd(Client *a, std::string line){(void)a; (void)line;};
+		void voidCmd(Client *a, std::string line);
+		void cmdCAP(Client *cli, std::string line);
+		void cmdPASS(Client *cli, std::string line);
+		void cmdNICK(Client *cli, std::string line);
+		void cmdUSER(Client *cli, std::string line);
+		void checkRegistration(Client *cli);
 		//channel cmds
-		void joinCmd(Client *a, std::string line);
+		//void joinCmd(Client *a, std::string line);
 		//clean
 		void closeFds();
 		void clearClients(int fd);
