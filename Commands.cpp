@@ -126,7 +126,7 @@ void parsingJoin(std::vector <struct joinChannel> &tv, std::string line){
 }
 
 void	Server::cmdJOIN(Client *a, std::string line){
-	
+
 	std::istringstream iss(line);
 	std::string cmd, name, dots;
 	std::ostringstream msg;
@@ -156,7 +156,7 @@ void Server::cmdQUIT(Client *a, std::string line){
 	(void)line;
 	(void)a;
 	
-	Channel *tv;
+	//Channel *tv;
 	std::stringstream msg;
 	// tv = a->getChannel();
 	// if (tv){
