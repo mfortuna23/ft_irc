@@ -137,7 +137,7 @@ void Server::handleCommand(Client *a, std::string line){
 	void (Server::*fCmds[12])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
 		&Server::cmdCAP, &Server::voidCmd, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
 		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd};
-	for (size_t i = 0; i < 13; i++){
+	for (size_t i = 0; i < 12; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
 			(this->*fCmds[i])(a, line);

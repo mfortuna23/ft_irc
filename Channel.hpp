@@ -10,8 +10,8 @@ class Channel{
 	private :
 		std::string name;
 		std::string passW;
-		Client		*host;
-		int			type;
+		//Client		*host;
+		//int			type;
 		std::map<std::string, Client *> myClients;
 	public :
 		Channel(){name = "default";};

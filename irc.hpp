@@ -21,6 +21,8 @@
 # include <vector>
 # include <cstdlib>
 # include <map>
+# include <algorithm>
+
 
 # include "Channel.hpp"
 # include "Client.hpp"
