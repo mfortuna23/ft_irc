@@ -9,6 +9,9 @@ class Server;
 class Channel{
 	private :
 		std::string name;
+		std::string passW;
+		Client		*host;
+		int			type;
 		std::map<std::string, Client *> myClients;
 	public :
 		Channel(){name = "default";};
@@ -20,6 +23,12 @@ class Channel{
 		void addClient(Client *other);
 		void rmClient(Client *other);
 		~Channel(){};
+} ;
+
+struct joinChannel{
+	std::string name;
+	std::string passW;
+	int			type; // 2 general 1 private
 } ;
 
 std::ostream &operator<<(std::ostream &out, const Channel& other);

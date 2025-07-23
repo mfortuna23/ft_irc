@@ -40,6 +40,7 @@ class Server {
 		//channel cmds
 		Channel* getChannelByName(std::string name);
 		void cmdJOIN(Client *a, std::string line);
+		void cmdQUIT(Client *a, std::string line);
 		//clean
 		void closeFds();
 		void clearClients(int fd);
