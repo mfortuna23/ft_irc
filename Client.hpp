@@ -16,7 +16,7 @@ class Client {
 		bool 		is_registered;
 		std::string buffer;// acumula os dados recebidos até um "\r\n"
 		int			regist_3steps;// comeca com 3 (3 estapas: nick, user e pass) e reduz ate 0
-		Channel		*myChannel;
+		std::vector <Channel *> myChannels;
 	public :
 		Client();
 		Client(int fd, const std::string &ip);
@@ -36,8 +36,8 @@ class Client {
 		bool get_is_registered(){return is_registered;};
 		int get_regist_steps(){return regist_3steps;};
 		std::string &get_buffer(){return buffer;};
-		void set_channel(Channel *c) { myChannel = c; }
-		Channel* get_channel() { return myChannel; }
+		std::vector <Channel *> getChannels() { return myChannels; }
+		void newChannel(Channel *other){myChannels.push_back(other);};
 } ;
 
 #endif

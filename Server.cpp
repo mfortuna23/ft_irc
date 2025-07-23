@@ -132,12 +132,12 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *a, std::string line){
-	std::string cmds[12] = {"PASS", "NICK", "USER", "CAP","PING", "PONG", "QUIT", "JOIN", "KICK",
+	std::string cmds[12] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
 	"INVITE", "TOPIC", "MODE"};
 	void (Server::*fCmds[12])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
-		&Server::cmdCAP, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd, 
-		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd};
-	for (size_t i = 0; i < cmds->size(); i++){
+		&Server::cmdCAP, &Server::voidCmd, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
+		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd};
+	for (size_t i = 0; i < 13; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
 			(this->*fCmds[i])(a, line);

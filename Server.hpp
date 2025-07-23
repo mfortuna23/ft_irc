@@ -38,7 +38,9 @@ class Server {
 		void cmdUSER(Client *cli, std::string line);
 		void checkRegistration(Client *cli);
 		//channel cmds
-		//void joinCmd(Client *a, std::string line);
+		Channel* getChannelByName(std::string name);
+		void cmdJOIN(Client *a, std::string line);
+		void cmdQUIT(Client *a, std::string line);
 		//clean
 		void closeFds();
 		void clearClients(int fd);

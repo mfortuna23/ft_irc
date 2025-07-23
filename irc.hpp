@@ -22,9 +22,9 @@
 # include <cstdlib>
 # include <map>
 
+# include "Channel.hpp"
 # include "Client.hpp"
 # include "Server.hpp"
-# include "Channel.hpp"
 
 # define BLUE "\033[34m"
 # define RED "\033[31m"
