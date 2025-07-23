@@ -1,7 +1,7 @@
 NAME    = ircserv
 CPP     = c++
 CPPFLG  = -Wall -Wextra -Werror -std=c++98
-SRC     = main.cpp Server.cpp irc_utils.cpp Client.cpp Commands.cpp
+SRC     = main.cpp Server.cpp irc_utils.cpp Client.cpp Commands.cpp Channel.cpp
 OBJDIR  = obj
 OBJS    = $(SRC:%.cpp=$(OBJDIR)/%.o)
 

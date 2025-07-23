@@ -22,9 +22,9 @@
 # include <cstdlib>
 # include <map>
 
+# include "Channel.hpp"
 # include "Client.hpp"
 # include "Server.hpp"
-# include "Channel.hpp"
 
 # define BLUE "\033[34m"
 # define RED "\033[31m"
@@ -40,7 +40,6 @@
 void set_nonblocking(int fd);
 void sendMsg(int fd, const char *buffer, size_t len);
 std::string toUpper(const std::string &str);
-
 /* ##### COMMANDS ##### */
 
 #endif
