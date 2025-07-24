@@ -132,11 +132,11 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *a, std::string line){
-	std::string cmds[12] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
-	"INVITE", "TOPIC", "MODE"};
-	void (Server::*fCmds[12])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
+	std::string cmds[13] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
+	"INVITE", "TOPIC", "MODE", "PRIVMSG"};
+	void (Server::*fCmds[13])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
 		&Server::cmdCAP, &Server::voidCmd, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
-		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd};
+		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdPRIVMSG};
 	for (size_t i = 0; i < 13; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
@@ -203,5 +203,14 @@ void Server::checkRegistration(Client *cli)
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 	}
 }
+
+Client* Server::getClientByNick(const std::string& nick) {
+	for (size_t i = 0; i < clients.size(); ++i) {
+		if (clients[i].get_nick() == nick)
+			return &clients[i];
+	}
+	return NULL;
+}
+
 
 Server::~Server(){}
