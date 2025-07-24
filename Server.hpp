@@ -28,6 +28,7 @@ class Server {
 		void sendMsgAll(int fd_client, const char *buffer, size_t len);
 		Client* getClientByFd(int fd);
 		std::string get_pass();
+		Client* getClientByNick(const std::string& nick);
 		//cmds
 		void handleCommand(Client *a, std::string line);
 		bool isThisCmd(const std::string& line, std::string cmd);
@@ -37,6 +38,7 @@ class Server {
 		void cmdNICK(Client *cli, std::string line);
 		void cmdUSER(Client *cli, std::string line);
 		void checkRegistration(Client *cli);
+		void cmdPRIVMSG(Client *cli, std::string line);
 		//channel cmds
 		Channel* getChannelByName(std::string name);
 		void cmdJOIN(Client *a, std::string line);

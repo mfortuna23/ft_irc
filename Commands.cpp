@@ -49,9 +49,14 @@ void Server::cmdNICK(Client *cli, std::string line) {
 		sendMsg(cli->getFd(), "ERROR :No nickname given\r\n", 27);
 		return;
 	}
+
+	std::string old_nick = cli->get_nick();
+	std::string msg = ":" + old_nick + " NICK :" + nick + "\r\n";
+	sendMsg(cli->getFd(), msg.c_str(), msg.length());
 	cli->set_nickname(nick);
-	std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
-	sendMsg(cli->getFd(), msg.c_str(), msg.size());
+
+	//std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
+	//sendMsg(cli->getFd(), msg.c_str(), msg.size());
 	if (cli->get_regist_steps() == 2)
 		cli->confirm_regist_step(this);
 }
@@ -173,5 +178,51 @@ void Server::cmdQUIT(Client *a, std::string line){
 			clients.erase(clients.begin() + i);
 			close(a->getFd());
 		}
+	}
+}
+
+void Server::cmdPRIVMSG(Client *cli, std::string line) {
+	std::istringstream iss(line);
+	std::string cmd, target, message;
+
+	iss >> cmd >> target;
+
+	if (target.empty()) {
+		sendMsg(cli->getFd(), "ERROR :No recipient given (PRIVMSG)\r\n", 36);
+		return;
+	}
+
+	size_t pos = line.find(" :");
+	if (pos != std::string::npos)
+		message = line.substr(pos + 2); // ignora o " :"
+
+	if (message.empty()) {
+		sendMsg(cli->getFd(), "ERROR :No text to send\r\n", 25);
+		return;
+	}
+
+	if (target[0] == '#') {
+		Channel* chan = getChannelByName(target);
+		if (!chan) {
+			sendMsg(cli->getFd(), "ERROR :No such channel\r\n", 26);
+			return;
+		}
+		std::map<std::string, Client*> clients = chan->getClients();
+		for (std::map<std::string, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+			if (it->second->getFd() != cli->getFd()) {
+				std::ostringstream msg;
+				msg << ":" << cli->get_nick() << " PRIVMSG " << target << " :" << message << "\r\n";
+				sendMsg(it->second->getFd(), msg.str().c_str(), msg.str().size());
+			}
+		}
+	} else {
+		Client* dest = getClientByNick(target);
+		if (!dest) {
+			sendMsg(cli->getFd(), "ERROR :No such nick/channel\r\n", 30);
+			return;
+		}
+		std::ostringstream msg;
+		msg << ":" << cli->get_nick() << " PRIVMSG " << target << " :" << message << "\r\n";
+		sendMsg(dest->getFd(), msg.str().c_str(), msg.str().size());
 	}
 }
