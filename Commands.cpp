@@ -92,68 +92,49 @@ Channel* Server::getChannelByName(std::string name)
 	}
 	return NULL;
 }
-//fills conteiner of struct join channel with names and passwords
-void parsingJoin(std::vector <struct joinChannel> &tv, std::string line){
-	// std::istringstream iss(line);
-	// std::string cmd, channels, keys;
-	// iss >> cmd >> channels;
-	// if (iss.peek() == ':') {
-	// 	iss.ignore();
-	// 	std::getline(iss, keys);
-	// }
-	// std::istringstream chanStream(channels);
-	// std::string channel;
-	// while (std::getline(chanStream, channel, ',')) {
-	// 	channel.erase(0, channel.find_first_not_of(" \t"));
-	// 	channel.erase(channel.find_last_not_of(" \t") + 1);
-	// 	if (!channel.empty() && (channel[0] == '#' || channel[0] == '&')) {
-	// 		joinChannel join;
-	// 		join.type = (channel[0] == '&') ? 1 : 2;
-	// 		join.name = channel.substr(1);
-	// 		join.passW = "";
-	// 		tv.push_back(join);
-	// 	}
-	// 	else{
-	// 		if (channel.empty())
-	// 	}
-	// }
-	// if (!keys.empty()) {
-	// 	std::istringstream keyStream(keys);
-	// 	std::string key;
-	// 	for (size_t i = 0; std::getline(keyStream, key, ',') && i < tv.size(); ++i) {
-	// 		key.erase(0, key.find_first_not_of(" \t"));
-	// 		key.erase(key.find_last_not_of(" \t") + 1);
-	// 		tv[i].passW = key; // Assign to corresponding channel
-	// 	}
-	// }
-	(void)tv;
-	(void)line;
-}
+
 
 void	Server::cmdJOIN(Client *a, std::string line){
-
-	std::istringstream iss(line);
-	std::string cmd, name, dots;
-	std::ostringstream msg;
-	iss >> cmd >> name; // TODO parsing join
-	if (name.empty()){
-		msg << RED << "Missing arguments for JOIN cmd" << RESET << "\r\n";
+	std::stringstream msg;
+	if (a->get_regist_steps() != 0){
+		msg << RED << "Error" << RESET << "\r\n";
 		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
 		return ;
 	}
-	Channel *mTv;
-	Channel c;
-	mTv = &c;
-	if (channels.empty() || getChannelByName(name) == NULL) {
-		mTv->setName(name);
-		channels.push_back(*mTv);
+	std::istringstream iss(line);
+	std::string cmd, channel, keys;
+	iss >> cmd >> channel;
+	if (iss.peek() == ':')
+		iss.ignore();
+	std::getline(iss, keys);
+	keys.erase(0, keys.find_first_not_of(" \t\n\r"));
+	std::istringstream chanStream(channel);
+	std::istringstream keyStream(keys);
+	std::vector<std::string> allKeys;
+	int i = 0;
+	while (std::getline(keyStream, keys, ','))
+		allKeys.push_back(keys);
+	for (size_t x = 0; x < 100; x++)
+		allKeys.push_back("");
+	while (std::getline(chanStream, channel, ',')) {
+		channel.erase(0, channel.find_first_not_of(" \t"));
+		channel.erase(channel.find_last_not_of(" \t") + 1);
+		if (!channel.empty() /* && (channel[0] == '#' || channel[0] == '&') */) {
+			Channel *c = getChannelByName(channel);
+			if (!c)
+				channels.push_back(Channel(channel, a, allKeys[i++]));
+			else{
+				if (c->getPwd().empty())
+					c->addClient(a);
+				else
+					c->addClient(a, allKeys[i++]);
+			}
+		}
+		else{
+			msg << RED << "Error" << RESET << "\r\n";
+			sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		}
 	}
-	else
-		mTv = getChannelByName(name);
-	mTv->addClient(a);
-	a->newChannel(mTv);
-	msg << GREEN << "You joined " << *mTv << " channel!" << RESET << "\r\n";
-	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
 }
 
 
@@ -162,7 +143,7 @@ void Server::cmdQUIT(Client *a, std::string line){
 	(void)a;
 	
 	//Channel *tv;
-	std::stringstream msg;
+	std::stringstream msg; //TODO msg all channels
 	// tv = a->getChannel();
 	// if (tv){
 	// 	a->newChannel(NULL);

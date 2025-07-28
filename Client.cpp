@@ -6,7 +6,7 @@
 /*   By: mfortuna <mfortuna@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/07 16:32:44 by alex              #+#    #+#             */
-/*   Updated: 2025/07/21 09:50:06 by mfortuna         ###   ########.fr       */
+/*   Updated: 2025/07/24 14:41:01 by mfortuna         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,3 +30,5 @@ void Client::confirm_regist_step(Server *srv)
 		srv->checkRegistration(this);
 	}
 }
+void Client::newChannel(Channel *other){myChannels.insert(std::make_pair(other->getName(), other));}
+void Client::rmChannel(Channel *other){myChannels.erase(other->getName());}
