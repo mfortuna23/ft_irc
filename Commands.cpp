@@ -40,9 +40,13 @@ void Server::cmdPASS(Client *cli, std::string line) {
 void Server::cmdNICK(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, nick;
+
 	if (cli->get_regist_steps() > 2)
+	{	
+		sendMsg(cli->getFd(), "ERROR: Enter PASS first\r\n", 26);
 		return ;
-	
+	}
+
 	iss >> cmd >> nick;
 
 	if (nick.empty()) {
@@ -67,7 +71,10 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	std::string cmd, user, unused, asterisk, realname;
 
 	if (cli->get_regist_steps() > 2)
+	{	
+		sendMsg(cli->getFd(), "ERROR: Enter PASS first\r\n", 26);
 		return ;
+	}
 	
 	iss >> cmd >> user >> unused >> asterisk;
 	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
@@ -176,8 +183,7 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 	size_t pos = line.find(" :");
 	if (pos != std::string::npos)
 		message = line.substr(pos + 2); // ignora o " :"
-
-	if (message.empty()) {
+	else {
 		sendMsg(cli->getFd(), "ERROR :No text to send\r\n", 25);
 		return;
 	}
@@ -188,8 +194,8 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 			sendMsg(cli->getFd(), "ERROR :No such channel\r\n", 26);
 			return;
 		}
-		std::map<std::string, Client*> clients = chan->getClients();
-		for (std::map<std::string, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		std::map<int, Client*> clients = chan->getClients();
+		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			if (it->second->getFd() != cli->getFd()) {
 				std::ostringstream msg;
 				msg << ":" << cli->get_nick() << " PRIVMSG " << target << " :" << message << "\r\n";
