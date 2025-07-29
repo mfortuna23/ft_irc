@@ -43,7 +43,7 @@ void Server::cmdNICK(Client *cli, std::string line) {
 
 	if (cli->get_regist_steps() > 2)
 	{	
-		sendMsg(cli->getFd(), "ERROR: Enter PASS first\r\n", 26);
+		sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
 		return ;
 	}
 
@@ -72,7 +72,7 @@ void Server::cmdUSER(Client *cli, std::string line) {
 
 	if (cli->get_regist_steps() > 2)
 	{	
-		sendMsg(cli->getFd(), "ERROR: Enter PASS first\r\n", 26);
+		sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
 		return ;
 	}
 	
@@ -268,4 +268,67 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 		msg << ":" << cli->get_nick() << " PRIVMSG " << target << " :" << message << "\r\n";
 		sendMsg(dest->getFd(), msg.str().c_str(), msg.str().size());
 	}
+}
+
+void Server::cmdNOTICE(Client *cli, std::string line) {
+	std::istringstream iss(line);
+	std::string cmd, target, message;
+
+	iss >> cmd >> target;
+
+	if (target.empty())
+		return; // NOTICE nunca envia mensagem de erro, testado no irc libera chat
+
+	size_t pos = line.find(" :"); // verificamos primeiro a partir do identificador de mensagem
+	if (pos != std::string::npos)
+		message = line.substr(pos + 2); // removemos o identificador de mensagem
+	else
+		return; // sem mensagem, nao faz nada
+
+	if (message.empty())
+		return;
+
+	if (target[0] == '#') {
+		Channel* chan = getChannelByName(target);
+		if (!chan)
+			return; // canal nao existe
+
+		std::map<int, Client*> clients = chan->getClients(); // busca todos os clientes atualmente conectados no canal
+		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+			if (it->second->getFd() != cli->getFd()) {
+				std::ostringstream msg;
+				msg << ":" << cli->get_nick() << " NOTICE " << target << " :" << message << "\r\n"; // padrao irc
+				sendMsg(it->second->getFd(), msg.str().c_str(), msg.str().size());
+			}
+		}
+	} else {
+		Client* dest = getClientByNick(target);
+		if (!dest)
+			return;
+		std::ostringstream msg;
+		msg << ":" << cli->get_nick() << " NOTICE " << target << " :" << message << "\r\n"; // padrao irc
+		sendMsg(dest->getFd(), msg.str().c_str(), msg.str().size());
+	}
+}
+
+void Server::cmdPING(Client *cli, std::string line) {
+	std::string token;
+	std::istringstream iss(line);
+	iss >> token; // ignora "PING"
+
+	std::string payload;
+	size_t pos = line.find(" :");
+	if (pos != std::string::npos)
+		payload = line.substr(pos + 2);
+	else {
+		// fallback: tenta pegar o segundo argumento, mesmo sem :
+		iss >> payload;
+	}
+
+	if (payload.empty())
+		return; // PING sem argumento → ignorar
+
+	std::ostringstream reply;
+	reply << "PONG :" << payload << "\r\n";
+	sendMsg(cli->getFd(), reply.str().c_str(), reply.str().size());
 }

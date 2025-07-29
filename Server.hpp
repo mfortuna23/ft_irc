@@ -45,6 +45,8 @@ class Server {
 		void cmdQUIT(Client *a, std::string line);
 		void checkRegistration(Client *cli);
 		void cmdPRIVMSG(Client *cli, std::string line);
+		void cmdNOTICE(Client *cli, std::string line);
+		void cmdPING(Client *cli, std::string line);
 		//channel cmds
 		Channel* getChannelByName(std::string name);
 		void cmdJOIN(Client *a, std::string line);
