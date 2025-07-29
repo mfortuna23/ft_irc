@@ -94,8 +94,8 @@ void Server::cmdUSER(Client *cli, std::string line) {
 Channel* Server::getChannelByName(std::string name)
 {
 	for (size_t i = 0; i < channels.size(); ++i){
-		if (channels[i].getName() == name)
-			return &channels[i];
+		if (channels[i]->getName() == name)
+			return channels[i];
 	}
 	return NULL;
 }
@@ -129,7 +129,13 @@ void	Server::cmdJOIN(Client *a, std::string line){
 		if (!channel.empty() /* && (channel[0] == '#' || channel[0] == '&') */) {
 			Channel *c = getChannelByName(channel);
 			if (!c)
-				channels.push_back(Channel(channel, a, allKeys[i++]));
+			{
+				// aloca um novo Channel no heap e guarda o ponteiro
+				channels.push_back(new Channel(channel, a, allKeys[i]));
+				c = channels.back();
+				++i;
+			}
+				//channels.push_back(Channel(channel, a, allKeys[i++])); forma anteriror
 			else{
 				if (c->getPwd().empty())
 					c->addClient(a);
@@ -145,7 +151,7 @@ void	Server::cmdJOIN(Client *a, std::string line){
 }
 
 
-void Server::cmdQUIT(Client *a, std::string line){
+/*void Server::cmdQUIT(Client *a, std::string line){
 	(void)line;
 	(void)a;
 	
@@ -167,6 +173,56 @@ void Server::cmdQUIT(Client *a, std::string line){
 			close(a->getFd());
 		}
 	}
+}*/
+
+void Server::cmdQUIT(Client *a, std::string line){
+	(void)line;
+
+	std::stringstream msg;
+	msg << ":" << a->get_nick() << " QUIT :Leaving\r\n";
+	std::string quit_msg = msg.str();
+
+	// copia o map para uma variável local, oque evita modificar ou iterar diretamente sobre o map original 
+	std::map<std::string, Channel*> chansMap = a->getChannels();
+
+	// constrói um vetor de ponteiros apenas para Channel, assim temos de forma segura nesse vetor todos os canais aos quais o cliente pertence no momento do QUIT
+	std::vector<Channel*> chans;
+	for (std::map<std::string, Channel*>::iterator it = chansMap.begin(); it != chansMap.end(); ++it)
+	{
+    	chans.push_back(it->second);
+	}
+
+	std::vector<std::string> toRemove;
+
+	for (size_t i = 0; i < chans.size(); ++i) {
+		Channel *ch = chans[i];
+
+		// notifica os outros membros
+		std::map<int, Client*> members = ch->getClients();
+		for (std::map<int, Client*>::iterator cit = members.begin(); cit != members.end(); ++cit) {
+			if (cit->second->getFd() != a->getFd()) // envia para todos menos para quem saiu
+				sendMsg(cit->second->getFd(), quit_msg.c_str(), quit_msg.size());
+		}
+
+		ch->rmClient(a);// podemos alterar (remover) o cliente com seguranca, pois ja temos a lista dos canais que ele pertence
+
+		if (ch->getClients().empty()) // verifica se o canal nao tem mais nenhum cliente nele
+			toRemove.push_back(ch->getName());
+	}
+
+	// remove os canais vazios
+	for (size_t i = 0; i < toRemove.size(); ++i) {
+		for (size_t j = 0; j < channels.size(); ++j) {
+			if (channels[j]->getName() == toRemove[i]) {
+				channels.erase(channels.begin() + j);
+				break;
+			}
+		}
+	}
+
+	sendMsg(a->getFd(), quit_msg.c_str(), quit_msg.size());
+	close(a->getFd());
+	clearClients(a->getFd());
 }
 
 void Server::cmdPRIVMSG(Client *cli, std::string line) {

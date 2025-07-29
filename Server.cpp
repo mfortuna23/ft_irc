@@ -184,7 +184,7 @@ void Server::clearClients(int fd){
 			break ;
 		}
 	}
-	for (size_t i = 0; i < fds.size(); i++){
+	for (size_t i = 0; i < clients.size(); i++){
 		if(clients.at(i).getFd() == fd){
 			clients.erase(clients.begin() + i);
 			break ;
@@ -213,4 +213,8 @@ Client* Server::getClientByNick(const std::string& nick) {
 }
 
 
-Server::~Server(){}
+Server::~Server(){
+	for (size_t i = 0; i < channels.size(); ++i) // libera os ponteiros no destrutor de Serve
+		delete channels[i];
+	channels.clear();
+}
