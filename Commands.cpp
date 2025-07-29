@@ -179,7 +179,7 @@ void Server::cmdQUIT(Client *a, std::string line){
 	(void)line;
 
 	std::stringstream msg;
-	msg << ":" << a->get_nick() << " QUIT :Leaving\r\n";
+	msg << ":" << a->get_nick() << "!" << a->get_user() << "@" << a->getIp() << " QUIT :Leaving\r\n";
 	std::string quit_msg = msg.str();
 
 	// copia o map para uma variável local, oque evita modificar ou iterar diretamente sobre o map original 
