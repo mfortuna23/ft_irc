@@ -30,6 +30,7 @@ class Channel {
 		void		addClient(Client *other);
 		void		addClient(Client *other, std::string pwd);
 		void		rmClient(Client *other);
+		void		sendMsgChannel(std::string msg);
 		~Channel(){};
 } ;
 

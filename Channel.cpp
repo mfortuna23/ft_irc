@@ -46,8 +46,8 @@ Channel::Channel(std::string oName, Client *a, std::string pwd){
 	a->newChannel(this);
 	myClients.insert(std::make_pair(a->getFd(), a));
 	std::stringstream msg;
-	msg << GREEN << "You've joined " << name << " channel with password!" << RESET << "\r\n";
-	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+	msg << GREEN << startMsg(a) << "JOIN :" << name << RESET << "\r\n";
+	sendMsgChannel(msg.str());
 }
 
 Channel &Channel::operator=(const Channel &other){
@@ -72,8 +72,8 @@ void Channel::addClient(Client *other){
 	myClients.insert(std::make_pair(other->getFd(), other));
 	other->newChannel(this);
 	++nClients;
-	msg << GREEN << "You've joined " << name << " channel!" << RESET << "\r\n";
-	sendMsg(other->getFd(), msg.str().c_str(), msg.str().size());
+	msg << GREEN << startMsg(other) << "JOIN :" << name << RESET << "\r\n";
+	sendMsgChannel(msg.str());
 }
 
 void Channel::addClient(Client *other, std::string pwd){
@@ -97,12 +97,21 @@ void Channel::addClient(Client *other, std::string pwd){
 	myClients.insert(std::make_pair(other->getFd(), other));
 	other->newChannel(this);
 	++nClients;
-	msg << GREEN << "You've joined " << name << " channel!" << RESET << "\r\n";
-	sendMsg(other->getFd(), msg.str().c_str(), msg.str().size());
+	msg << GREEN << startMsg(other) << "JOIN :" << name << RESET << "\r\n";
+	sendMsgChannel(msg.str());
 }
 
 void Channel::rmClient(Client *other){
 	myClients.erase(other->getFd());
 	other->rmChannel(this);
 	--nClients;
+}
+
+void	Channel::sendMsgChannel(std::string msg){
+	std::map<int, Client*>::iterator it;
+	for (it = myClients.begin(); it != myClients.end(); ++it) {
+		Client* client = it->second; 
+		if (client)
+			send(client->getFd(), msg.c_str(), msg.size(), 0);
+	}
 }

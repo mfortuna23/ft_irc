@@ -16,6 +16,13 @@ void sendMsg(int fd, const char *buffer, size_t len){
     }
 }
 
+std::string startMsg(Client *a){
+	std::stringstream msg;
+	msg << ":" << a->get_nick() << "!~" << a->get_user() << "@LocalHost "; //TODO get local host
+	std::cout << msg.str() << std::endl;
+	return msg.str();
+}
+
 std::string toUpper(const std::string &str) {
 	std::string upper = str;
 	// Aplica toupper() em cada caractere, sobrescrevendo a string upper

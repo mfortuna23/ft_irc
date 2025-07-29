@@ -188,8 +188,8 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 			sendMsg(cli->getFd(), "ERROR :No such channel\r\n", 26);
 			return;
 		}
-		std::map<std::string, Client*> clients = chan->getClients();
-		for (std::map<std::string, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		std::map<int, Client*> clients = chan->getClients();
+		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			if (it->second->getFd() != cli->getFd()) {
 				std::ostringstream msg;
 				msg << ":" << cli->get_nick() << " PRIVMSG " << target << " :" << message << "\r\n";
