@@ -105,6 +105,18 @@ void Channel::rmClient(Client *other){
 	myClients.erase(other->getFd());
 	other->rmChannel(this);
 	--nClients;
+	// caso seja o host que esteja saindo
+	if (host == other)
+		host = NULL;
+}
+
+void	Channel::sendMsgChannel(std::string msg){
+	std::map<int, Client*>::iterator it;
+	for (it = myClients.begin(); it != myClients.end(); ++it) {
+		Client* client = it->second; 
+		if (client)
+			send(client->getFd(), msg.c_str(), msg.size(), 0);
+	}
 }
 
 void	Channel::sendMsgChannel(std::string msg){

@@ -40,9 +40,13 @@ void Server::cmdPASS(Client *cli, std::string line) {
 void Server::cmdNICK(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, nick;
+
 	if (cli->get_regist_steps() > 2)
+	{	
+		sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
 		return ;
-	
+	}
+
 	iss >> cmd >> nick;
 
 	if (nick.empty()) {
@@ -67,7 +71,10 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	std::string cmd, user, unused, asterisk, realname;
 
 	if (cli->get_regist_steps() > 2)
+	{	
+		sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
 		return ;
+	}
 	
 	iss >> cmd >> user >> unused >> asterisk;
 	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
@@ -87,8 +94,8 @@ void Server::cmdUSER(Client *cli, std::string line) {
 Channel* Server::getChannelByName(std::string name)
 {
 	for (size_t i = 0; i < channels.size(); ++i){
-		if (channels[i].getName() == name)
-			return &channels[i];
+		if (channels[i]->getName() == name)
+			return channels[i];
 	}
 	return NULL;
 }
@@ -122,7 +129,13 @@ void	Server::cmdJOIN(Client *a, std::string line){
 		if (!channel.empty() /* && (channel[0] == '#' || channel[0] == '&') */) {
 			Channel *c = getChannelByName(channel);
 			if (!c)
-				channels.push_back(Channel(channel, a, allKeys[i++]));
+			{
+				// aloca um novo Channel no heap e guarda o ponteiro
+				channels.push_back(new Channel(channel, a, allKeys[i]));
+				c = channels.back();
+				++i;
+			}
+				//channels.push_back(Channel(channel, a, allKeys[i++])); forma anteriror
 			else{
 				if (c->getPwd().empty())
 					c->addClient(a);
@@ -138,7 +151,7 @@ void	Server::cmdJOIN(Client *a, std::string line){
 }
 
 
-void Server::cmdQUIT(Client *a, std::string line){
+/*void Server::cmdQUIT(Client *a, std::string line){
 	(void)line;
 	(void)a;
 	
@@ -160,6 +173,56 @@ void Server::cmdQUIT(Client *a, std::string line){
 			close(a->getFd());
 		}
 	}
+}*/
+
+void Server::cmdQUIT(Client *a, std::string line){
+	(void)line;
+
+	std::stringstream msg;
+	msg << ":" << a->get_nick() << "!" << a->get_user() << "@" << a->getIp() << " QUIT :Leaving\r\n";
+	std::string quit_msg = msg.str();
+
+	// copia o map para uma variável local, oque evita modificar ou iterar diretamente sobre o map original 
+	std::map<std::string, Channel*> chansMap = a->getChannels();
+
+	// constrói um vetor de ponteiros apenas para Channel, assim temos de forma segura nesse vetor todos os canais aos quais o cliente pertence no momento do QUIT
+	std::vector<Channel*> chans;
+	for (std::map<std::string, Channel*>::iterator it = chansMap.begin(); it != chansMap.end(); ++it)
+	{
+    	chans.push_back(it->second);
+	}
+
+	std::vector<std::string> toRemove;
+
+	for (size_t i = 0; i < chans.size(); ++i) {
+		Channel *ch = chans[i];
+
+		// notifica os outros membros
+		std::map<int, Client*> members = ch->getClients();
+		for (std::map<int, Client*>::iterator cit = members.begin(); cit != members.end(); ++cit) {
+			if (cit->second->getFd() != a->getFd()) // envia para todos menos para quem saiu
+				sendMsg(cit->second->getFd(), quit_msg.c_str(), quit_msg.size());
+		}
+
+		ch->rmClient(a);// podemos alterar (remover) o cliente com seguranca, pois ja temos a lista dos canais que ele pertence
+
+		if (ch->getClients().empty()) // verifica se o canal nao tem mais nenhum cliente nele
+			toRemove.push_back(ch->getName());
+	}
+
+	// remove os canais vazios
+	for (size_t i = 0; i < toRemove.size(); ++i) {
+		for (size_t j = 0; j < channels.size(); ++j) {
+			if (channels[j]->getName() == toRemove[i]) {
+				channels.erase(channels.begin() + j);
+				break;
+			}
+		}
+	}
+
+	sendMsg(a->getFd(), quit_msg.c_str(), quit_msg.size());
+	close(a->getFd());
+	clearClients(a->getFd());
 }
 
 void Server::cmdPRIVMSG(Client *cli, std::string line) {
@@ -176,8 +239,7 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 	size_t pos = line.find(" :");
 	if (pos != std::string::npos)
 		message = line.substr(pos + 2); // ignora o " :"
-
-	if (message.empty()) {
+	else {
 		sendMsg(cli->getFd(), "ERROR :No text to send\r\n", 25);
 		return;
 	}
@@ -206,4 +268,67 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 		msg << ":" << cli->get_nick() << " PRIVMSG " << target << " :" << message << "\r\n";
 		sendMsg(dest->getFd(), msg.str().c_str(), msg.str().size());
 	}
+}
+
+void Server::cmdNOTICE(Client *cli, std::string line) {
+	std::istringstream iss(line);
+	std::string cmd, target, message;
+
+	iss >> cmd >> target;
+
+	if (target.empty())
+		return; // NOTICE nunca envia mensagem de erro, testado no irc libera chat
+
+	size_t pos = line.find(" :"); // verificamos primeiro a partir do identificador de mensagem
+	if (pos != std::string::npos)
+		message = line.substr(pos + 2); // removemos o identificador de mensagem
+	else
+		return; // sem mensagem, nao faz nada
+
+	if (message.empty())
+		return;
+
+	if (target[0] == '#') {
+		Channel* chan = getChannelByName(target);
+		if (!chan)
+			return; // canal nao existe
+
+		std::map<int, Client*> clients = chan->getClients(); // busca todos os clientes atualmente conectados no canal
+		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+			if (it->second->getFd() != cli->getFd()) {
+				std::ostringstream msg;
+				msg << ":" << cli->get_nick() << " NOTICE " << target << " :" << message << "\r\n"; // padrao irc
+				sendMsg(it->second->getFd(), msg.str().c_str(), msg.str().size());
+			}
+		}
+	} else {
+		Client* dest = getClientByNick(target);
+		if (!dest)
+			return;
+		std::ostringstream msg;
+		msg << ":" << cli->get_nick() << " NOTICE " << target << " :" << message << "\r\n"; // padrao irc
+		sendMsg(dest->getFd(), msg.str().c_str(), msg.str().size());
+	}
+}
+
+void Server::cmdPING(Client *cli, std::string line) {
+	std::string token;
+	std::istringstream iss(line);
+	iss >> token; // ignora "PING"
+
+	std::string payload;
+	size_t pos = line.find(" :");
+	if (pos != std::string::npos)
+		payload = line.substr(pos + 2);
+	else {
+		// fallback: tenta pegar o segundo argumento, mesmo sem :
+		iss >> payload;
+	}
+
+	if (payload.empty())
+		return; // PING sem argumento → ignorar
+
+	std::ostringstream reply;
+	reply << "PONG :" << payload << "\r\n";
+	sendMsg(cli->getFd(), reply.str().c_str(), reply.str().size());
 }

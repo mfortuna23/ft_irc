@@ -17,7 +17,12 @@ class Server {
 		static bool	running;
 		std::vector<Client> clients;
 		std::vector<struct pollfd> fds;
-		std::vector<Channel> channels;
+		std::vector<Channel*> channels;
+		/*
+		Por que Client pode ser armazenado por valor, mas Channel deve ser ponteiro?
+			Client:  nunca guardamos Client* fora do vetor
+			Channel: salvamos Channel* nos Client, então o endereço precisa ser estável. não se pode correr o risco do endereço do objeto mudar, segfaults.
+		*/
 	public :
 		Server();
 		void serverInit(int newPort, std::string newPassword);
@@ -40,6 +45,8 @@ class Server {
 		void cmdQUIT(Client *a, std::string line);
 		void checkRegistration(Client *cli);
 		void cmdPRIVMSG(Client *cli, std::string line);
+		void cmdNOTICE(Client *cli, std::string line);
+		void cmdPING(Client *cli, std::string line);
 		//channel cmds
 		Channel* getChannelByName(std::string name);
 		void cmdJOIN(Client *a, std::string line);

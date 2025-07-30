@@ -132,12 +132,12 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *a, std::string line){
-	std::string cmds[13] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
-	"INVITE", "TOPIC", "MODE", "PRIVMSG"};
-	void (Server::*fCmds[13])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
-		&Server::cmdCAP, &Server::voidCmd, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
-		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdPRIVMSG};
-	for (size_t i = 0; i < 13; i++){
+	std::string cmds[14] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
+	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE"};
+	void (Server::*fCmds[14])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
+		&Server::cmdCAP, &Server::cmdPING, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
+		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdPRIVMSG, &Server::cmdNOTICE};
+	for (size_t i = 0; i < 14; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
 			(this->*fCmds[i])(a, line);
@@ -184,7 +184,7 @@ void Server::clearClients(int fd){
 			break ;
 		}
 	}
-	for (size_t i = 0; i < fds.size(); i++){
+	for (size_t i = 0; i < clients.size(); i++){
 		if(clients.at(i).getFd() == fd){
 			clients.erase(clients.begin() + i);
 			break ;
@@ -213,4 +213,8 @@ Client* Server::getClientByNick(const std::string& nick) {
 }
 
 
-Server::~Server(){}
+Server::~Server(){
+	for (size_t i = 0; i < channels.size(); ++i) // libera os ponteiros no destrutor de Serve
+		delete channels[i];
+	channels.clear();
+}
