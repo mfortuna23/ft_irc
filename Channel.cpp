@@ -105,4 +105,7 @@ void Channel::rmClient(Client *other){
 	myClients.erase(other->getFd());
 	other->rmChannel(this);
 	--nClients;
+	// caso seja o host que esteja saindo
+	if (host == other)
+		host = NULL;
 }
