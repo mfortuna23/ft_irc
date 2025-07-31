@@ -150,36 +150,11 @@ void	Server::cmdJOIN(Client *a, std::string line){
 	}
 }
 
-
-/*void Server::cmdQUIT(Client *a, std::string line){
-	(void)line;
-	(void)a;
-	
-	//Channel *tv;
-	std::stringstream msg; //TODO msg all channels
-	// tv = a->getChannel();
-	// if (tv){
-	// 	a->newChannel(NULL);
-	// 	tv->rmClient(a);
-	// 	msg << GREEN << "You quit " << *tv << " channel!" << RESET << "\r\n";
-	// 	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
-	// 	return ;
-	// }
-	msg << GREEN << "You quit IRC" << RESET << "\r\n";
-	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
-	for (size_t i = 0; i < clients.size(); i++){
-		if (clients[i].getFd() == a->getFd()){
-			clients.erase(clients.begin() + i);
-			close(a->getFd());
-		}
-	}
-}*/
-
 void Server::cmdQUIT(Client *a, std::string line){
 	(void)line;
 
 	std::stringstream msg;
-	msg << ":" << a->get_nick() << "!" << a->get_user() << "@" << a->getIp() << " QUIT :Leaving\r\n";
+	msg << startMsg(a) << " QUIT :Leaving\r\n";
 	std::string quit_msg = msg.str();
 
 	// copia o map para uma variável local, oque evita modificar ou iterar diretamente sobre o map original 
@@ -188,12 +163,9 @@ void Server::cmdQUIT(Client *a, std::string line){
 	// constrói um vetor de ponteiros apenas para Channel, assim temos de forma segura nesse vetor todos os canais aos quais o cliente pertence no momento do QUIT
 	std::vector<Channel*> chans;
 	for (std::map<std::string, Channel*>::iterator it = chansMap.begin(); it != chansMap.end(); ++it)
-	{
-    	chans.push_back(it->second);
-	}
+		chans.push_back(it->second);
 
 	std::vector<std::string> toRemove;
-
 	for (size_t i = 0; i < chans.size(); ++i) {
 		Channel *ch = chans[i];
 
@@ -331,4 +303,36 @@ void Server::cmdPING(Client *cli, std::string line) {
 	std::ostringstream reply;
 	reply << "PONG :" << payload << "\r\n";
 	sendMsg(cli->getFd(), reply.str().c_str(), reply.str().size());
+}
+
+//leave channels
+void Server::cmdPART(Client *a, std::string line){
+	std::stringstream msg;
+	if (a->get_regist_steps() != 0){
+		msg << RED << "Error" << RESET << "\r\n";
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	std::istringstream iss(line);
+	std::string cmd, channel, leave;
+	iss >> cmd >> channel >> leave;
+	std::istringstream chanStream(channel);
+	Channel *tv;
+	while (std::getline(chanStream, channel, ',')) {
+		channel.erase(0, channel.find_first_not_of(" \t"));
+		channel.erase(channel.find_last_not_of(" \t") + 1);
+		if (!channel.empty() /* && (channel[0] == '#' || channel[0] == '&') */) {
+			tv = getChannelByName(channel);
+			if (tv && tv->rmClient(a)){
+				msg << startMsg(a) << " PART " << tv->getName() << " " << leave << "\r\n";
+				tv->sendMsgChannel(msg.str());
+				msg.str("");
+				msg.clear();
+			}
+		}
+		else{
+			msg << RED << "Error" << RESET << "\r\n";
+			sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		}
+	}
 }
