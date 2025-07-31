@@ -29,7 +29,7 @@ class Channel {
 		Channel 	&operator=(const Channel &other);
 		void		addClient(Client *other);
 		void		addClient(Client *other, std::string pwd);
-		void		rmClient(Client *other);
+		bool		rmClient(Client *other);
 		void		sendMsgChannel(std::string msg);
 		~Channel(){};
 } ;

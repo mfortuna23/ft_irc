@@ -80,7 +80,7 @@ void Channel::addClient(Client *other, std::string pwd){
 	std::stringstream msg;
 	//TODO check invite only
 	if (myClients.find(other->getFd()) != myClients.end()){
-		msg << RED << "You already joined " << name << " channel." << RESET << "\r\n";
+		msg << RED << "You already joined " << name << " channel." << RESET << "\r\n"; //PROTOCOLCHECK
 		sendMsg(other->getFd(), msg.str().c_str(), msg.str().size());
 		return ;
 	}
@@ -101,22 +101,17 @@ void Channel::addClient(Client *other, std::string pwd){
 	sendMsgChannel(msg.str());
 }
 
-void Channel::rmClient(Client *other){
-	myClients.erase(other->getFd());
+bool Channel::rmClient(Client *other){
+	if (myClients.erase(other->getFd()) == 0) { /* not found */
+		//error msg
+		return false;
+	}
 	other->rmChannel(this);
 	--nClients;
 	// caso seja o host que esteja saindo
 	if (host == other)
 		host = NULL;
-}
-
-void	Channel::sendMsgChannel(std::string msg){
-	std::map<int, Client*>::iterator it;
-	for (it = myClients.begin(); it != myClients.end(); ++it) {
-		Client* client = it->second; 
-		if (client)
-			send(client->getFd(), msg.c_str(), msg.size(), 0);
-	}
+	return true ;
 }
 
 void	Channel::sendMsgChannel(std::string msg){
