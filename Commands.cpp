@@ -111,10 +111,10 @@ void	Server::cmdJOIN(Client *a, std::string line){
 	std::istringstream iss(line);
 	std::string cmd, channel, keys;
 	iss >> cmd >> channel;
-	if (iss.peek() == ':')
-		iss.ignore();
-	std::getline(iss, keys);
-	keys.erase(0, keys.find_first_not_of(" \t\n\r"));
+	// if (iss.peek() == ':')
+	// 	iss.ignore();
+	// std::getline(iss, keys);
+	keys.erase(0, keys.find_first_not_of(" \t\n\r:"));
 	std::istringstream chanStream(channel);
 	std::istringstream keyStream(keys);
 	std::vector<std::string> allKeys;
@@ -128,14 +128,11 @@ void	Server::cmdJOIN(Client *a, std::string line){
 		channel.erase(channel.find_last_not_of(" \t") + 1);
 		if (!channel.empty() /* && (channel[0] == '#' || channel[0] == '&') */) {
 			Channel *c = getChannelByName(channel);
-			if (!c)
-			{
-				// aloca um novo Channel no heap e guarda o ponteiro
+			if (!c){
 				channels.push_back(new Channel(channel, a, allKeys[i]));
 				c = channels.back();
 				++i;
 			}
-				//channels.push_back(Channel(channel, a, allKeys[i++])); forma anteriror
 			else{
 				if (c->getPwd().empty())
 					c->addClient(a);
@@ -144,7 +141,7 @@ void	Server::cmdJOIN(Client *a, std::string line){
 			}
 		}
 		else{
-			msg << RED << "Error" << RESET << "\r\n";
+			msg << RED << "Error" << RESET << "\r\n"; //PROTOCOL 
 			sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
 		}
 	}
@@ -168,15 +165,16 @@ void Server::cmdQUIT(Client *a, std::string line){
 	std::vector<std::string> toRemove;
 	for (size_t i = 0; i < chans.size(); ++i) {
 		Channel *ch = chans[i];
-
+		ch->rmClient(a); // Não queremos que este membro seja notificado
 		// notifica os outros membros
-		std::map<int, Client*> members = ch->getClients();
-		for (std::map<int, Client*>::iterator cit = members.begin(); cit != members.end(); ++cit) {
-			if (cit->second->getFd() != a->getFd()) // envia para todos menos para quem saiu
-				sendMsg(cit->second->getFd(), quit_msg.c_str(), quit_msg.size());
-		}
+		ch->sendMsgChannel(quit_msg);
+		// std::map<int, Client*> members = ch->getClients();
+		// for (std::map<int, Client*>::iterator cit = members.begin(); cit != members.end(); ++cit) {
+		// 	if (cit->second->getFd() != a->getFd()) // envia para todos menos para quem saiu
+		// 		sendMsg(cit->second->getFd(), quit_msg.c_str(), quit_msg.size());
+		// }
 
-		ch->rmClient(a);// podemos alterar (remover) o cliente com seguranca, pois ja temos a lista dos canais que ele pertence
+		//ch->rmClient(a);// podemos alterar (remover) o cliente com seguranca, pois ja temos a lista dos canais que ele pertence
 
 		if (ch->getClients().empty()) // verifica se o canal nao tem mais nenhum cliente nele
 			toRemove.push_back(ch->getName());
@@ -315,9 +313,10 @@ void Server::cmdPART(Client *a, std::string line){
 	}
 	std::istringstream iss(line);
 	std::string cmd, channel, leave;
-	iss >> cmd >> channel >> leave;
+	iss >> cmd >> channel;
 	std::istringstream chanStream(channel);
 	Channel *tv;
+	std::getline(iss, leave);
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
@@ -331,7 +330,7 @@ void Server::cmdPART(Client *a, std::string line){
 			}
 		}
 		else{
-			msg << RED << "Error" << RESET << "\r\n";
+			msg << RED << "Error" << RESET << "\r\n"; //PROTOCOL
 			sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
 		}
 	}
