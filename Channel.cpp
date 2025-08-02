@@ -46,8 +46,8 @@ Channel::Channel(std::string oName, Client *a, std::string pwd){
 	a->newChannel(this);
 	myClients.insert(std::make_pair(a->getFd(), a));
 	std::stringstream msg;
-	msg << GREEN << "You've joined " << name << " channel with password!" << RESET << "\r\n";
-	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+	msg << GREEN << startMsg(a) << "JOIN :" << name << RESET << "\r\n";
+	sendMsgChannel(msg.str());
 }
 
 Channel &Channel::operator=(const Channel &other){
@@ -72,15 +72,15 @@ void Channel::addClient(Client *other){
 	myClients.insert(std::make_pair(other->getFd(), other));
 	other->newChannel(this);
 	++nClients;
-	msg << GREEN << "You've joined " << name << " channel!" << RESET << "\r\n";
-	sendMsg(other->getFd(), msg.str().c_str(), msg.str().size());
+	msg << GREEN << startMsg(other) << "JOIN :" << name << RESET << "\r\n";
+	sendMsgChannel(msg.str());
 }
 
 void Channel::addClient(Client *other, std::string pwd){
 	std::stringstream msg;
 	//TODO check invite only
 	if (myClients.find(other->getFd()) != myClients.end()){
-		msg << RED << "You already joined " << name << " channel." << RESET << "\r\n";
+		msg << RED << "You already joined " << name << " channel." << RESET << "\r\n"; //PROTOCOLCHECK
 		sendMsg(other->getFd(), msg.str().c_str(), msg.str().size());
 		return ;
 	}
@@ -97,15 +97,28 @@ void Channel::addClient(Client *other, std::string pwd){
 	myClients.insert(std::make_pair(other->getFd(), other));
 	other->newChannel(this);
 	++nClients;
-	msg << GREEN << "You've joined " << name << " channel!" << RESET << "\r\n";
-	sendMsg(other->getFd(), msg.str().c_str(), msg.str().size());
+	msg << GREEN << startMsg(other) << "JOIN :" << name << RESET << "\r\n";
+	sendMsgChannel(msg.str());
 }
 
-void Channel::rmClient(Client *other){
-	myClients.erase(other->getFd());
+bool Channel::rmClient(Client *other){
+	if (myClients.erase(other->getFd()) == 0) { /* not found */
+		//error msg
+		return false;
+	}
 	other->rmChannel(this);
 	--nClients;
 	// caso seja o host que esteja saindo
 	if (host == other)
 		host = NULL;
+	return true ;
+}
+
+void	Channel::sendMsgChannel(std::string msg){
+	std::map<int, Client*>::iterator it;
+	for (it = myClients.begin(); it != myClients.end(); ++it) {
+		Client* client = it->second; 
+		if (client)
+			send(client->getFd(), msg.c_str(), msg.size(), 0);
+	}
 }

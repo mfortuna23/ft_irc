@@ -7,13 +7,19 @@ void set_nonblocking(int fd) {
 void sendMsg(int fd, const char *buffer, size_t len){
 	size_t total_sent = 0;
 
-	while (total_sent < len)
-	{
+	while (total_sent < len) {
 		int sent = send(fd, buffer + total_sent, len - total_sent, 0);
         if (sent <= 0)
             return ;
         total_sent += sent;
     }
+}
+
+std::string startMsg(Client *a){
+	std::stringstream msg;
+	msg << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp();
+	std::cout << msg.str() << std::endl;
+	return msg.str();
 }
 
 std::string toUpper(const std::string &str) {
