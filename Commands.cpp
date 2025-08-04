@@ -221,6 +221,13 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 			return;
 		}
 		std::map<int, Client*> clients = chan->getClients();
+		if (clients.count(cli->getFd()) == 0) // if the client isnt in the channel, he cant send the msg.
+		{
+			std::ostringstream err;
+			err << ":server 404 " << cli->get_nick() << " " << target << " :Cannot send to channel\r\n";
+			sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+			return;
+		}
 		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			if (it->second->getFd() != cli->getFd()) {
 				std::ostringstream msg;
