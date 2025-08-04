@@ -15,12 +15,15 @@ class Server {
 		int ServSockFd;
 		static bool signal;
 		static bool	running;
-		std::vector<Client> clients;
+		std::vector<Client*> clients; // quando Client era armazenado por valor e o vetor realocava, os ponteiros guardados nos channels passavam a apontar para lugares errados.
 		std::vector<struct pollfd> fds;
 		std::vector<Channel*> channels;
 		/*
-		Por que Client pode ser armazenado por valor, mas Channel deve ser ponteiro?
-			Client:  nunca guardamos Client* fora do vetor
+		Por que Client e Channel devem ser ponteiros?
+			Client:  estamos armazenando ponteiros para client (enderecos para os elementos do vetor) fora do vetor,
+			especificamente nos canais no container myClients (std::map<int, Client*>). Entao se o vetor armazenasse Clients por valor,
+			quando o vetor realocar (conforme o numero de clients), esses ponteiros se tornariam inválidos.
+			
 			Channel: salvamos Channel* nos Client, então o endereço precisa ser estável. não se pode correr o risco do endereço do objeto mudar, segfaults.
 		*/
 	public :
