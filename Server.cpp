@@ -144,8 +144,8 @@ void Server::handleCommand(Client *a, std::string line){
 			return ;
 		}
 	}
-	std::string response = ":server PONG :" + line + "\r\n";
-	sendMsgAll(a->getFd(), response.c_str(), response.size());
+	std::string response = "ERROR :Unknown command\r\n";
+	sendMsg(a->getFd(), response.c_str(), response.size());
 }
 
 
