@@ -76,7 +76,8 @@ void Server::acceptNewClient(){
 
 	// cria e armazena o client
 	std::string ip = inet_ntoa(client_addr.sin_addr); // salvamos o ip que accept preencheu
-	Client new_client(client_fd, ip); // crio um objeto client e salvo seu fd e seu ip;
+	Client* new_client = new Client(client_fd, ip);
+	//Client new_client(client_fd, ip); // crio um objeto client e salvo seu fd e seu ip; 
 	clients.push_back(new_client); // coloco ele no vetor de clients.
 
 	std::cout << GREEN << "New client connected: fd " << client_fd << " | IP: " << ip << RESET << std::endl;
@@ -86,8 +87,8 @@ Client* Server::getClientByFd(int fd) // nova funcao para selecionar o client qu
 {
 	for (size_t i = 0; i < clients.size(); ++i)
 	{
-		if (clients[i].getFd() == fd)
-			return &clients[i];
+		if (clients[i]->getFd() == fd)
+			return clients[i];
 	}
 	return NULL;
 }
@@ -167,8 +168,9 @@ void Server::signalHandler (int signum){
 
 void Server::closeFds(){
 	for (size_t  i = 0; i < clients.size(); i++){
-		std::cout << RED << "Client <" << clients[i].getFd() << "> Disconnected" << RESET << std::endl;
-		close(clients[i].getFd());
+		std::cout << RED << "Client <" << clients[i]->getFd() << "> Disconnected" << RESET << std::endl;
+		close(clients[i]->getFd());
+		delete clients[i];
 	}
 	if (ServSockFd == -1)
 		return ;
@@ -185,7 +187,9 @@ void Server::clearClients(int fd){
 		}
 	}
 	for (size_t i = 0; i < clients.size(); i++){
-		if(clients.at(i).getFd() == fd){
+		if(clients[i]->getFd() == fd){
+			std::cout << RED << "[clearClients] Deletando fd " << fd << RESET << std::endl;
+			delete clients[i];
 			clients.erase(clients.begin() + i);
 			break ;
 		}
@@ -206,8 +210,8 @@ void Server::checkRegistration(Client *cli)
 
 Client* Server::getClientByNick(const std::string& nick) {
 	for (size_t i = 0; i < clients.size(); ++i) {
-		if (clients[i].get_nick() == nick)
-			return &clients[i];
+		if (clients[i]->get_nick() == nick)
+			return clients[i];
 	}
 	return NULL;
 }
@@ -217,4 +221,8 @@ Server::~Server(){
 	for (size_t i = 0; i < channels.size(); ++i) // libera os ponteiros no destrutor de Serve
 		delete channels[i];
 	channels.clear();
+	for (size_t i = 0; i < clients.size(); ++i){
+			delete (clients[i]);
+	}
+	clients.clear();
 }

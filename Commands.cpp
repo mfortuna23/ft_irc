@@ -70,12 +70,18 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, user, unused, asterisk, realname;
 
-	if (cli->get_regist_steps() > 2)
-	{	
+	if (cli->get_regist_steps() > 2){	
 		sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
 		return ;
 	}
-	
+	if (cli->get_regist_steps() > 1){	
+		sendMsg(cli->getFd(), "ERROR :Enter NICK first\r\n", 26);
+		return ;
+	}
+	else if (cli->get_is_registered()) {
+		sendMsg(cli->getFd(), "ERROR :You may not reregister\r\n", 32);
+		return;
+	}
 	iss >> cmd >> user >> unused >> asterisk;
 	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
 	// como nao vamos nos aprofundar muito, nao precisamos salvar nada alem do user.
@@ -184,6 +190,7 @@ void Server::cmdQUIT(Client *a, std::string line){
 	for (size_t i = 0; i < toRemove.size(); ++i) {
 		for (size_t j = 0; j < channels.size(); ++j) {
 			if (channels[j]->getName() == toRemove[i]) {
+				delete channels[j];
 				channels.erase(channels.begin() + j);
 				break;
 			}
