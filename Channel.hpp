@@ -15,6 +15,7 @@ class Channel {
 		int			limit;
 		int			nClients;
 		std::map<int, Client *> myClients;
+		std::vector <Client *> operators;
 	public :
 		Channel();
 		Channel(std::string other);
@@ -32,12 +33,6 @@ class Channel {
 		bool		rmClient(Client *other);
 		void		sendMsgChannel(std::string msg);
 		~Channel(){};
-} ;
-
-struct joinChannel{
-	std::string name;
-	std::string passW;
-	int			type; // 2 general 1 private
 } ;
 
 std::ostream &operator<<(std::ostream &out, const Channel& other);

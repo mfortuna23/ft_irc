@@ -349,3 +349,25 @@ void Server::cmdPART(Client *a, std::string line){
 		}
 	}
 }
+
+void Server::cmdMODE(Client *a, std::string line){
+	std::stringstream msg;
+	if (a->get_regist_steps() != 0){
+		msg << RED << "Error" << RESET << "\r\n"; //protocol
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	std::istringstream iss(line);
+	std::vector <std::string> args;
+	std::string cmd, channel, modes, arg;
+	iss >> cmd >> channel >> modes;
+	if (channel.empty() || modes.empty() || (modes[0] != '-' && modes[0] != '+')) 
+		return ; //argument error
+	if (!getChannelByName(channel)) //chanel does not exist error
+		return ;
+	while (!iss.str().empty()){
+		iss >> arg;
+		args.push_back(arg);
+	}
+	
+}
