@@ -29,3 +29,11 @@ std::string toUpper(const std::string &str) {
 	std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
 	return upper;
 }
+
+bool	checkNbr(std::string nbr){
+	for (int i = 0; nbr[i]; i++){
+		if (nbr[i] && (nbr[i] < '0' || nbr[i] > '9'))
+			return false;
+	}
+	return true;
+}

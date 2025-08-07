@@ -32,6 +32,10 @@ class Channel {
 		void		addClient(Client *other, std::string pwd);
 		bool		rmClient(Client *other);
 		void		sendMsgChannel(std::string msg);
+		void		modePNA(Client *a, char mode); //mode positive no arguments
+		void		modePWA(Client *a, char mode, std::string args); //mode positive with arguments
+		void		modeNNA(Client *a, char mode); //mode negative no arguments
+		void		modeNWA(Client *a, char mode, std::string args); //mode negative with arguments
 		~Channel(){};
 } ;
 

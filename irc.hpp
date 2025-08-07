@@ -43,6 +43,7 @@ void set_nonblocking(int fd);
 void sendMsg(int fd, const char *buffer, size_t len);
 std::string startMsg(Client *a);
 std::string toUpper(const std::string &str);
+bool	checkNbr(std::string nbr);
 /* ##### COMMANDS ##### */
 
 #endif

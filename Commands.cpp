@@ -1,5 +1,4 @@
 #include "irc.hpp"
-#include "Server.hpp"
 
 bool Server::isThisCmd(const std::string& line, std::string cmd){
 	std::istringstream iss(line);
@@ -363,11 +362,37 @@ void Server::cmdMODE(Client *a, std::string line){
 	iss >> cmd >> channel >> modes;
 	if (channel.empty() || modes.empty() || (modes[0] != '-' && modes[0] != '+')) 
 		return ; //argument error
-	if (!getChannelByName(channel)) //chanel does not exist error
+	Channel *tv = getChannelByName(channel);
+	if (!tv) //channel does not exist error
 		return ;
-	while (!iss.str().empty()){
-		iss >> arg;
+	//TODO check for  permission
+	while (iss >> arg)
 		args.push_back(arg);
+    std::cout << std::endl;
+	int j = 0;
+	int x = 0;
+	for (int i = 0; modes[i]; i++){
+		if (modes[i] == '+' || modes[i] == '-')
+			j = i;
+		else {
+			if (i == 0 || modes[i] == '+' || modes[i] == '-')
+				return ; //invalid seguence 472
+			if (modes[j] == '+'){
+				if (modes[i] == 'i' || modes[i] == 't') //nao precisa de argumentos
+					tv->modePNA(a, modes[i]);
+				else if (modes[i] == 'k' || modes[i] == 'o' || modes[i] == 'l') //precisa de argumentos
+					tv->modePWA(a, modes[i], args[x++]);
+				else
+					return ;//bad mode
+			}
+			if (modes[j] == '-'){
+				if (modes[i] == 'i' || modes[i] == 't' || modes[i] == 'k' || modes[i] == 'l') //nao precisa de argumentos
+					tv->modeNNA(a, modes[i]);
+				else if (modes[i] == 'o') //precisa de argumentos
+					tv->modeNWA(a, modes[i], args[x++]);
+				else
+					return ;//bad mode
+			}
+		}
 	}
-	
 }
