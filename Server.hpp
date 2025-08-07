@@ -47,6 +47,7 @@ class Server {
 		void cmdUSER(Client *cli, std::string line);
 		void cmdQUIT(Client *a, std::string line);
 		void checkRegistration(Client *cli);
+		void cmdMODE(Client *a, std::string line);
 		void cmdPRIVMSG(Client *cli, std::string line);
 		void cmdNOTICE(Client *cli, std::string line);
 		void cmdPING(Client *cli, std::string line);
