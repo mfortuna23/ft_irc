@@ -122,3 +122,65 @@ void	Channel::sendMsgChannel(std::string msg){
 			send(client->getFd(), msg.c_str(), msg.size(), 0);
 	}
 }
+void	Channel::modePNA(Client *a, char mode){
+	std::stringstream msg;
+	if (mode == 'i'){
+		msg << "Setting channel " << name << " to invite only" << "\r\n"; //protocol
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	msg << "Channel " << name << " has topic restrictions" << "\r\n"; //protocol
+	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+
+}
+void	Channel::modePWA(Client *a, char mode, std::string args){
+	std::stringstream msg;
+	if (mode == 'k'){
+		msg << "Setting channel " << name << " with key: " << args << "\r\n"; //protocol
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	if (mode == 'o'){
+		//TODO check if user exists and give them operator priv
+		msg << "Giving user " << args << " operator privileges in channel " << name << "\r\n"; //protocol
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	if (!checkNbr(args)){
+		msg << "Limit " << args << " is not vallid" << "\r\n";
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	msg << "limit of " << args << " users was set in channel " << name << "\r\n";
+	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+
+
+}
+void	Channel::modeNNA(Client *a, char mode){
+	std::stringstream msg;
+	if (mode == 'i'){
+		msg << "Remove invite only from channel " << name << "\r\n"; //protocol
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	if (mode == 't'){
+		msg << "Remove topic restrictions from channel " << name << "\r\n"; //protocol
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	if (mode == 'k'){
+		msg << "Remove key from channel " << name << "\r\n"; //protocol
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	msg << "Remove user limit from channel " << name << "\r\n"; //protocol
+	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+	
+}
+void	Channel::modeNWA(Client *a, char mode, std::string args){
+	std::stringstream msg;
+	(void)mode;
+	//check if user exists and removes operator priv
+	msg << "Remove operator privileges from " << args << " from channel " << name;
+	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+}
