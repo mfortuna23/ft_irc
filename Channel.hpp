@@ -15,6 +15,7 @@ class Channel {
 		int			limit;
 		int			nClients;
 		std::map<int, Client *> myClients;
+		std::vector <Client *> operators;
 	public :
 		Channel();
 		Channel(std::string other);
@@ -31,13 +32,11 @@ class Channel {
 		void		addClient(Client *other, std::string pwd);
 		bool		rmClient(Client *other);
 		void		sendMsgChannel(std::string msg);
+		void		modePNA(Client *a, char mode); //mode positive no arguments
+		void		modePWA(Client *a, char mode, std::string args); //mode positive with arguments
+		void		modeNNA(Client *a, char mode); //mode negative no arguments
+		void		modeNWA(Client *a, char mode, std::string args); //mode negative with arguments
 		~Channel(){};
-} ;
-
-struct joinChannel{
-	std::string name;
-	std::string passW;
-	int			type; // 2 general 1 private
 } ;
 
 std::ostream &operator<<(std::ostream &out, const Channel& other);
