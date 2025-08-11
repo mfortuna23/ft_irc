@@ -15,6 +15,7 @@ class Server {
 		int ServSockFd;
 		static bool signal;
 		static bool	running;
+		bool cleaned;
 		std::vector<Client*> clients; // quando Client era armazenado por valor e o vetor realocava, os ponteiros guardados nos channels passavam a apontar para lugares errados.
 		std::vector<struct pollfd> fds;
 		std::vector<Channel*> channels;
