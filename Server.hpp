@@ -53,12 +53,16 @@ class Server {
 		void cmdNOTICE(Client *cli, std::string line);
 		void cmdPING(Client *cli, std::string line);
 		void cmdPART(Client *cli, std::string line);
+		void cmdWHOIS(Client *cli, std::string line);
 		//channel cmds
 		Channel* getChannelByName(std::string name);
 		void cmdJOIN(Client *a, std::string line);
 		//clean
 		void closeFds();
 		void clearClients(int fd);
+		// helper
+		void tryFinishRegistration(Client* cli);
+
 		~Server();
 } ;
 

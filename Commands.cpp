@@ -28,14 +28,15 @@ void Server::cmdPASS(Client *cli, std::string line) {
 	iss >> cmd >> pass;
 
 	if (cli->get_is_registered()) {
-		sendMsg(cli->getFd(), "ERROR :You are already registered\r\n", 36);
+		sendMsg(cli->getFd(), ":server 462 :You are already registered\r\n", 42);
 		return;}
 	if (pass.empty()) {
-		sendMsg(cli->getFd(), "ERROR :No password given\r\n", 27);
+		sendMsg(cli->getFd(), ":server 461 :No password given\r\n", 33);
 		return;}
 	if (pass != this->get_pass()) {
-		sendMsg(cli->getFd(), "ERROR :Password incorrect\r\n", 28);
+		sendMsg(cli->getFd(), ":server 464 :Password incorrect\r\n", 34);
 		close(cli->getFd());
+		clearClients(cli->getFd());
 		return;}
 	if (cli->get_regist_steps() == 3)
 		cli->confirm_regist_step(this);
@@ -46,28 +47,40 @@ void Server::cmdNICK(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, nick;
 
-	if (cli->get_regist_steps() > 2)
-	{	
-		sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
-		return ;
-	}
+	// if (cli->get_regist_steps() > 2)
+	// {	
+	// 	sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
+	// 	return ;
+	// }
 
 	iss >> cmd >> nick;
 
 	if (nick.empty()) {
-		sendMsg(cli->getFd(), "ERROR :No nickname given\r\n", 27);
+		sendMsg(cli->getFd(), ":server 431 :No nickname given\r\n", 33);
 		return;
 	}
 
+	// bloqueio de nicks duplicados (433)
+	Client* holder = getClientByNick(nick);
+	if (holder && holder != cli) {
+		std::string err;
+		// formato comum: ":server 433 <seuNickOu*> <nick> :Nickname is already in use"
+		err = ":server 433 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " " + nick + " :Nickname is already in use\r\n";
+		sendMsg(cli->getFd(), err.c_str(), err.size());
+		return; // NÃO avançar passo de registro
+	}
 	std::string old_nick = cli->get_nick();
-	std::string msg = ":" + old_nick + " NICK :" + nick + "\r\n";
-	sendMsg(cli->getFd(), msg.c_str(), msg.length());
+	if (!old_nick.empty() && old_nick != nick){
+		std::string msg = ":" + old_nick + " NICK :" + nick + "\r\n";
+		sendMsg(cli->getFd(), msg.c_str(), msg.length());
+	}
 	cli->set_nickname(nick);
 
-	//std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
-	//sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	if (cli->get_regist_steps() == 2)
-		cli->confirm_regist_step(this);
+	std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
+	sendMsg(cli->getFd(), msg.c_str(), msg.size());
+	// if (cli->get_regist_steps() == 2)
+	// 	cli->confirm_regist_step(this);
+	tryFinishRegistration(cli);
 }
 
 // USER <username> 0 * :realname
@@ -75,31 +88,32 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, user, unused, asterisk, realname;
 
-	if (cli->get_regist_steps() > 2){	
-		sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
-		return ;
-	}
-	if (cli->get_regist_steps() > 1){	
-		sendMsg(cli->getFd(), "ERROR :Enter NICK first\r\n", 26);
-		return ;
-	}
-	else if (cli->get_is_registered()) {
-		sendMsg(cli->getFd(), "ERROR :You may not reregister\r\n", 32);
+	// if (cli->get_regist_steps() > 2){	
+	// 	sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
+	// 	return ;
+	// }
+	// if (cli->get_regist_steps() > 1){	
+	// 	sendMsg(cli->getFd(), ":server 431 :Enter NICK first\r\n", 26);
+	// 	return ;
+	// }
+	if (cli->get_is_registered()) {
+		sendMsg(cli->getFd(), ":server 462 :You may not reregister\r\n", 38);
 		return;
 	}
 	iss >> cmd >> user >> unused >> asterisk;
 	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
 	// como nao vamos nos aprofundar muito, nao precisamos salvar nada alem do user.
 	if (user.empty()) {
-		sendMsg(cli->getFd(), "ERROR :No username given\r\n", 27);
+		sendMsg(cli->getFd(), ":server 461 :No username given\r\n", 33);
 		return;
 	}
 	cli->set_username(user);
 	std::string msg = "Your username now is " + cli->get_user() + "\r\n";
 	sendMsg(cli->getFd(), msg.c_str(), msg.size());
 	
-	if (cli->get_regist_steps() == 1)
-		cli->confirm_regist_step(this);
+	// if (cli->get_regist_steps() == 1)
+	// 	cli->confirm_regist_step(this);
+	tryFinishRegistration(cli);
 }
 
 Channel* Server::getChannelByName(std::string name)
@@ -114,7 +128,7 @@ Channel* Server::getChannelByName(std::string name)
 
 void	Server::cmdJOIN(Client *a, std::string line){
 	std::stringstream msg;
-	if (a->get_regist_steps() != 0){
+	if (!a->get_is_registered()){
 		msg << ":server 451 " << a->get_nick() << " :You have not registered\r\n";
 		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
 		return ;
@@ -213,6 +227,13 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 	std::string cmd, target, message;
 
 	iss >> cmd >> target;
+
+	if (!cli->get_is_registered()) {
+		std::string o;
+		o = ":server 451 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " :You have not registered\r\n";
+		sendMsg(cli->getFd(), o.c_str(), o.size());
+		return;
+	}
 
 	if (target.empty()) {
 		sendMsg(cli->getFd(), "ERROR :No recipient given (PRIVMSG)\r\n", 36);
@@ -326,7 +347,7 @@ void Server::cmdPING(Client *cli, std::string line) {
 //leave channels
 void Server::cmdPART(Client *a, std::string line){
 	std::stringstream msg;
-	if (a->get_regist_steps() != 0){
+	if (!a->get_is_registered()){
 		msg << ":server 451 " << a->get_nick() << " :You have not registered\r\n";
 		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
 		return ;
@@ -401,7 +422,7 @@ void Server::cmdPART(Client *a, std::string line){
 
 void Server::cmdMODE(Client *a, std::string line) {
 	// 1) registration
-	if (a->get_regist_steps() != 0) {
+	if (!a->get_is_registered()) {
 		std::ostringstream err;
 		err << ":server 451 " << a->get_nick() << " :You have not registered\r\n";
 		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
@@ -461,6 +482,13 @@ void Server::cmdMODE(Client *a, std::string line) {
 		sendMsg(a->getFd(), rpl.str().c_str(), rpl.str().size());
 		return;
 	}
+	// nao precisamos lidar com nicks banidos.
+	if (modes == "b" || modes == "B") {
+		std::ostringstream rpl_banned_nicks;
+    	rpl_banned_nicks << ":server 368 " << a->get_nick() << " " << channel << " :End of Channel Ban List\r\n";
+    	sendMsg(a->getFd(), rpl_banned_nicks.str().c_str(), rpl_banned_nicks.str().size());
+    	return;
+	}
 
 	// a partir daqui: precisa ser operador
 	if (!tv->isOperator(a)) {
@@ -475,8 +503,6 @@ void Server::cmdMODE(Client *a, std::string line) {
 	std::vector<std::string> args;
 	for (std::string tmp; iss >> tmp; ) args.push_back(tmp);
 
-	char sign = 0;
-	size_t x = 0;
 	if (modes[0] != '+' && modes[0] != '-') {
 		std::ostringstream err;
 		err << ":server 472 " << a->get_nick() << " " << modes
@@ -484,10 +510,11 @@ void Server::cmdMODE(Client *a, std::string line) {
 		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
 		return;
 	}
-
+	char sign = 0;
+	size_t x = 0;
 	for (size_t i = 0; i < modes.size(); ++i) {
 		char c = modes[i];
-		if (c == '+' || c == '-') { sign = c; continue; }
+		if (c == '+' || c == '-') { sign = c; continue; } // pula o sign
 
 		if (sign != '+' && sign != '-') {
 			std::ostringstream err;
@@ -500,8 +527,10 @@ void Server::cmdMODE(Client *a, std::string line) {
 		switch (c) {
 			// sem arg
 			case 'i': case 't':
-				if (sign == '+') tv->modePNA(a, c);
-				else             tv->modeNNA(a, c);
+				if (sign == '+')
+					tv->modePNA(a, c);
+				else
+					tv->modeNNA(a, c);
 				break;
 
 			// com arg quando '+'
@@ -525,19 +554,41 @@ void Server::cmdMODE(Client *a, std::string line) {
 							return;
 						}
 						tv->modeNWA(a, c, args[x++]);
-					} else { // -k / -l não usam arg
+					} else // -k / -l não usam arg
 						tv->modeNNA(a, c);
-					}
 				}
 				break;
 
 			default: {
 				std::ostringstream err;
-				err << ":server 472 " << a->get_nick() << " " << c
-				    << " :is unknown mode char to me\r\n";
+				err << ":server 472 " << a->get_nick() << " " << c << " :is unknown mode char to me\r\n";
 				sendMsg(a->getFd(), err.str().c_str(), err.str().size());
 				return;
 			}
 		}
 	}
+}
+
+void Server::cmdWHOIS(Client *cli, std::string line) {
+    if (!cli->get_is_registered()) {
+        std::ostringstream e;
+        e << ":server 451 " << (cli->get_nick().empty() ? "*" : cli->get_nick())
+          << " :You have not registered\r\n";
+        sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
+        return;
+    }
+
+    std::istringstream iss(line);
+    std::string cmd, target;
+    iss >> cmd >> target;
+    if (target.empty()) {
+        std::ostringstream e;
+        e << ":server 461 " << cli->get_nick() << " WHOIS :Not enough parameters\r\n";
+        sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
+        return;
+    }
+
+    std::string end;
+    end = ":server 318 " + cli->get_nick() + " " + target + " :End of WHOIS list\r\n";
+    sendMsg(cli->getFd(), end.c_str(), end.size());
 }

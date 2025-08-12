@@ -135,12 +135,12 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *a, std::string line){
-	std::string cmds[16] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
-	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO"};
-	void (Server::*fCmds[16])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
+	std::string cmds[17] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
+	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO", "WHOIS"};
+	void (Server::*fCmds[17])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
 		&Server::cmdCAP, &Server::cmdPING, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
-		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd};
-	for (size_t i = 0; i < 16; i++){
+		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
+	for (size_t i = 0; i < 17; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
 			(this->*fCmds[i])(a, line);
@@ -204,12 +204,26 @@ std::string Server::get_pass(){ return password;}
 
 void Server::voidCmd(Client *a, std::string line){(void)a; (void)line;}
 
+void Server::tryFinishRegistration(Client* cli) {
+    if (!cli) return;
+    // PASS precisa ter sido aceito antes: no teu contador isso significa steps <= 2
+    if (!cli->get_is_registered()
+        && cli->get_regist_steps() <= 2
+        && !cli->get_nick().empty()
+        && !cli->get_user().empty())
+    {
+        cli->set_registration(true);     // marca como registrado
+        checkRegistration(cli);
+    }
+}
+
 void Server::checkRegistration(Client *cli)
 {
-	if (cli->get_is_registered() && !cli->get_nick().empty()) {
+	if (!cli->get_is_registered() || cli->get_nick().empty() || cli->get_user().empty()) 
+		return ;
+	// 001 RPL_WELCOME
 		std::string msg = ":server 001 " + cli->get_nick() + " :Welcome to the IRC server\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	}
 }
 
 Client* Server::getClientByNick(const std::string& nick) {
