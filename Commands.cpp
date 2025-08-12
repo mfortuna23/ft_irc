@@ -47,12 +47,6 @@ void Server::cmdNICK(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, nick;
 
-	// if (cli->get_regist_steps() > 2)
-	// {	
-	// 	sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
-	// 	return ;
-	// }
-
 	iss >> cmd >> nick;
 
 	if (nick.empty()) {
@@ -88,14 +82,6 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, user, unused, asterisk, realname;
 
-	// if (cli->get_regist_steps() > 2){	
-	// 	sendMsg(cli->getFd(), "ERROR :Enter PASS first\r\n", 26);
-	// 	return ;
-	// }
-	// if (cli->get_regist_steps() > 1){	
-	// 	sendMsg(cli->getFd(), ":server 431 :Enter NICK first\r\n", 26);
-	// 	return ;
-	// }
 	if (cli->get_is_registered()) {
 		sendMsg(cli->getFd(), ":server 462 :You may not reregister\r\n", 38);
 		return;
@@ -128,17 +114,18 @@ Channel* Server::getChannelByName(std::string name)
 
 void	Server::cmdJOIN(Client *a, std::string line){
 	std::stringstream msg;
-	if (!a->get_is_registered()){
-		msg << ":server 451 " << a->get_nick() << " :You have not registered\r\n";
-		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
-		return ;
-	}
+	if (!a->get_is_registered())
+		return sendErrorRegist(a);
+
 	std::istringstream iss(line);
 	std::string cmd, channel, keys;
 	iss >> cmd >> channel;
-	// if (iss.peek() == ':')
-	// 	iss.ignore();
-	// std::getline(iss, keys);
+	if (channel.empty()){
+		msg << ":server 461 " << a->get_nick() << " JOIN :Not enough parameters\r\n";
+		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	std::getline(iss, keys);
 	keys.erase(0, keys.find_first_not_of(" \t\n\r:"));
 	std::istringstream chanStream(channel);
 	std::istringstream keyStream(keys);
@@ -151,24 +138,22 @@ void	Server::cmdJOIN(Client *a, std::string line){
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
-		if (!channel.empty() /* && (channel[0] == '#' || channel[0] == '&') */) {
+		if (!channel.empty() && channel[0] == '#' /*|| channel[0] == '&') */) {
 			Channel *c = getChannelByName(channel);
 			if (!c){
 				channels.push_back(new Channel(channel, a, allKeys[i]));
 				c = channels.back();
 				c->sendNamesTo(a);
 				++i;
-			}
-			else{
+			} else if (channel[0] != '#'){
+				msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n"; //it is not printing this msg -.-
+				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
+			} else {
 				if (c->getPwd().empty())
 					c->addClient(a);
 				else
 					c->addClient(a, allKeys[i++]);
 			}
-		}
-		else{
-			msg << RED << "Error" << RESET << "\r\n"; //PROTOCOL 
-			sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
 		}
 	}
 }
@@ -191,21 +176,11 @@ void Server::cmdQUIT(Client *a, std::string line){
 	std::vector<std::string> toRemove;
 	for (size_t i = 0; i < chans.size(); ++i) {
 		Channel *ch = chans[i];
-		ch->rmClient(a); // Não queremos que este membro seja notificado
-		// notifica os outros membros
+		ch->rmClient(a);
 		ch->sendMsgChannel(quit_msg);
-		// std::map<int, Client*> members = ch->getClients();
-		// for (std::map<int, Client*>::iterator cit = members.begin(); cit != members.end(); ++cit) {
-		// 	if (cit->second->getFd() != a->getFd()) // envia para todos menos para quem saiu
-		// 		sendMsg(cit->second->getFd(), quit_msg.c_str(), quit_msg.size());
-		// }
-
-		//ch->rmClient(a);// podemos alterar (remover) o cliente com seguranca, pois ja temos a lista dos canais que ele pertence
-
-		if (ch->getClients().empty()) // verifica se o canal nao tem mais nenhum cliente nele
+		if (ch->getClients().empty())
 			toRemove.push_back(ch->getName());
 	}
-
 	// remove os canais vazios
 	for (size_t i = 0; i < toRemove.size(); ++i) {
 		for (size_t j = 0; j < channels.size(); ++j) {
@@ -228,12 +203,8 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 
 	iss >> cmd >> target;
 
-	if (!cli->get_is_registered()) {
-		std::string o;
-		o = ":server 451 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " :You have not registered\r\n";
-		sendMsg(cli->getFd(), o.c_str(), o.size());
-		return;
-	}
+	if (!cli->get_is_registered())
+		return sendErrorRegist(cli);
 
 	if (target.empty()) {
 		sendMsg(cli->getFd(), "ERROR :No recipient given (PRIVMSG)\r\n", 36);
@@ -347,11 +318,8 @@ void Server::cmdPING(Client *cli, std::string line) {
 //leave channels
 void Server::cmdPART(Client *a, std::string line){
 	std::stringstream msg;
-	if (!a->get_is_registered()){
-		msg << ":server 451 " << a->get_nick() << " :You have not registered\r\n";
-		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
-		return ;
-	}
+	if (!a->get_is_registered())
+		return sendErrorRegist(a);
 	std::istringstream iss(line);
 	std::string cmd, channel, leave;
 	iss >> cmd >> channel;
@@ -375,7 +343,7 @@ void Server::cmdPART(Client *a, std::string line){
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
-		if (!channel.empty() /* && (channel[0] == '#' || channel[0] == '&') */) {
+		if (!channel.empty()) {
 			tv = getChannelByName(channel);
 			if (!tv) { // canal não existe
 				msg.str(""); msg.clear();
@@ -422,12 +390,8 @@ void Server::cmdPART(Client *a, std::string line){
 
 void Server::cmdMODE(Client *a, std::string line) {
 	// 1) registration
-	if (!a->get_is_registered()) {
-		std::ostringstream err;
-		err << ":server 451 " << a->get_nick() << " :You have not registered\r\n";
-		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
-		return;
-	}
+	if (!a->get_is_registered())
+		return sendErrorRegist(a);
 
 	// 2) parse
 	std::istringstream iss(line);
@@ -570,13 +534,8 @@ void Server::cmdMODE(Client *a, std::string line) {
 }
 
 void Server::cmdWHOIS(Client *cli, std::string line) {
-    if (!cli->get_is_registered()) {
-        std::ostringstream e;
-        e << ":server 451 " << (cli->get_nick().empty() ? "*" : cli->get_nick())
-          << " :You have not registered\r\n";
-        sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
-        return;
-    }
+    if (!cli->get_is_registered())
+		return sendErrorRegist(cli);
 
     std::istringstream iss(line);
     std::string cmd, target;
