@@ -12,10 +12,12 @@ class Channel {
 		std::string passW;
 		Client		*host;
 		int			type;
-		int			limit;
+		size_t		limit;
 		int			nClients;
 		std::map<int, Client *> myClients;
 		std::vector <Client *> operators;
+		bool inviteOnly;            // +i
+		bool topicRestrict;         // +t
 	public :
 		Channel();
 		Channel(std::string other);
@@ -36,6 +38,26 @@ class Channel {
 		void		modePWA(Client *a, char mode, std::string args); //mode positive with arguments
 		void		modeNNA(Client *a, char mode); //mode negative no arguments
 		void		modeNWA(Client *a, char mode, std::string args); //mode negative with arguments
+		// operator handling //
+		bool		isOperator(Client* c) const; // check if client is operator
+		void		makeOperator(Client* c); // the one who creates or mode +o
+		bool		removeOperator(Client* c); // -o
+		bool		isMember(Client* c) const;
+		Client*		getMemberByNick(const std::string& nick) const; // same as getClientByNick() but just for a channel
+		// modes //
+		bool        getInviteOnly() const { return inviteOnly; }
+		bool        getTopicRestrict() const { return topicRestrict; }
+		bool        hasKey() const { return !passW.empty(); }
+		void        setInviteOnly(bool v) { inviteOnly = v; }
+		void        setTopicRestrict(bool v) { topicRestrict = v; }
+		void        setKey(const std::string& k) { passW = k; }
+		void        clearKey() { passW.clear(); }
+		void        setLimitCount(size_t v) { limit = v; }
+
+		// operators have @ infront of their nicks
+		void sendNamesTo(Client* requester) const;
+		void sendNamesToAll() const;
+
 		~Channel(){};
 } ;
 

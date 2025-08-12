@@ -2,8 +2,8 @@
 
 bool Server::signal = false;
 bool Server::running = true;
-Server::Server(){
-	ServSockFd = -1;
+Server::Server() : ServSockFd (-1) {
+	cleaned = false;
 }
 
 void Server::serverInit(int newPort, std::string newPassword){
@@ -17,8 +17,10 @@ void Server::serverInit(int newPort, std::string newPassword){
 	std::cout << GREEN << "Server <" << ServSockFd << "> Connected" << RESET << std::endl;
 	std::cout << "Waiting to accept a connection ..." << std::endl;
 	while (running){
-		if (poll(&fds.at(0), fds.size(), -1) < 0)
+		if (poll(&fds.at(0), fds.size(), -1) < 0) {
+			if (errno == EINTR) break; 
 			throw (std::runtime_error("Poll() failed"));
+		}
 		for (size_t i = 0; i < fds.size(); i++){
 			if ((fds[i].revents & POLLIN) == true){
 				if (fds[i].fd == ServSockFd)
@@ -133,12 +135,12 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *a, std::string line){
-	std::string cmds[15] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
-	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART"};
-	void (Server::*fCmds[15])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
+	std::string cmds[17] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
+	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO", "WHOIS"};
+	void (Server::*fCmds[17])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
 		&Server::cmdCAP, &Server::cmdPING, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
-		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART};
-	for (size_t i = 0; i < 15; i++){
+		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
+	for (size_t i = 0; i < 17; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
 			(this->*fCmds[i])(a, line);
@@ -167,6 +169,8 @@ void Server::signalHandler (int signum){
 }
 
 void Server::closeFds(){
+	if (cleaned)
+		return;
 	for (size_t  i = 0; i < clients.size(); i++){
 		std::cout << RED << "Client <" << clients[i]->getFd() << "> Disconnected" << RESET << std::endl;
 		close(clients[i]->getFd());
@@ -176,7 +180,7 @@ void Server::closeFds(){
 		return ;
 	std::cout << RED << "Server <" << ServSockFd << "> Disconnected" << RESET << std::endl;
 	close(ServSockFd);
-
+	cleaned = true;
 }
 
 void Server::clearClients(int fd){
@@ -200,12 +204,26 @@ std::string Server::get_pass(){ return password;}
 
 void Server::voidCmd(Client *a, std::string line){(void)a; (void)line;}
 
+void Server::tryFinishRegistration(Client* cli) {
+    if (!cli) return;
+    // PASS precisa ter sido aceito antes: no teu contador isso significa steps <= 2
+    if (!cli->get_is_registered()
+        && cli->get_regist_steps() <= 2
+        && !cli->get_nick().empty()
+        && !cli->get_user().empty())
+    {
+        cli->set_registration(true);     // marca como registrado
+        checkRegistration(cli);
+    }
+}
+
 void Server::checkRegistration(Client *cli)
 {
-	if (cli->get_is_registered() && !cli->get_nick().empty()) {
+	if (!cli->get_is_registered() || cli->get_nick().empty() || cli->get_user().empty()) 
+		return ;
+	// 001 RPL_WELCOME
 		std::string msg = ":server 001 " + cli->get_nick() + " :Welcome to the IRC server\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	}
 }
 
 Client* Server::getClientByNick(const std::string& nick) {
