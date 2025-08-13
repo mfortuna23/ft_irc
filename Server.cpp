@@ -152,14 +152,14 @@ void Server::handleCommand(Client *a, std::string line){
 }
 
 
-//TODO add channel
-void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
-	for (size_t i = 0; i < fds.size(); i++){
-		if (fds[i].fd != fd_client )
-			//if (getClientByFd(fd_client)->get_is_registered()) //TODO REGISTERED client
-				sendMsg(fds[i].fd, buffer, len);
-	}
-}
+//
+// void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
+// 	for (size_t i = 0; i < fds.size(); i++){
+// 		if (fds[i].fd != fd_client )
+// 			//if (getClientByFd(fd_client)->get_is_registered()) //TODO REGISTERED client
+// 				sendMsg(fds[i].fd, buffer, len);
+// 	}
+// }
 
 void Server::signalHandler (int signum){
 	(void)signum; // any signal ...
@@ -234,6 +234,12 @@ Client* Server::getClientByNick(const std::string& nick) {
 	return NULL;
 }
 
+void Server::sendErrorRegist(Client *cli){
+	std::ostringstream err;
+	err << ":server 451 " << (cli->get_nick().empty() ? "*" : cli->get_nick()) << " :You have not registered\r\n";
+	sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+	return;
+}
 
 Server::~Server(){
 	for (size_t i = 0; i < channels.size(); ++i) // libera os ponteiros no destrutor de Serve
@@ -244,3 +250,4 @@ Server::~Server(){
 	}
 	clients.clear();
 }
+

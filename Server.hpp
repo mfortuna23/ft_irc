@@ -34,7 +34,7 @@ class Server {
 		void acceptNewClient();
 		void recvNewData(int fd);
 		static void signalHandler (int signum);
-		void sendMsgAll(int fd_client, const char *buffer, size_t len);
+		//void sendMsgAll(int fd_client, const char *buffer, size_t len); //não está a ser usado, possivelmente só para erros do servidor
 		Client* getClientByFd(int fd);
 		std::string get_pass();
 		Client* getClientByNick(const std::string& nick);
@@ -62,6 +62,7 @@ class Server {
 		void clearClients(int fd);
 		// helper
 		void tryFinishRegistration(Client* cli);
+		void sendErrorRegist(Client *cli);
 
 		~Server();
 } ;
