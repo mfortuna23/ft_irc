@@ -138,7 +138,7 @@ void	Server::cmdJOIN(Client *a, std::string line){
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
-		if (!channel.empty() && channel[0] == '#' /*|| channel[0] == '&') */) {
+		if (!channel.empty() && (channel[0] == '#' || channel[0] == '&')) {
 			Channel *c = getChannelByName(channel);
 			if (!c){
 				channels.push_back(new Channel(channel, a)); // keys can only be added after the channel is created
@@ -151,7 +151,7 @@ void	Server::cmdJOIN(Client *a, std::string line){
 				else
 					c->addClient(a, allKeys[i++]);
 			}
-		} else if (channel[0] != '#'){
+		} else if (channel[0] != '#' || channel[0] == '&'){
 				msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n";
 				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
 		}
@@ -219,7 +219,7 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 		return;
 	}
 
-	if (target[0] == '#') {
+	if (target[0] == '#' || target[0] == '&') {
 		Channel* chan = getChannelByName(target);
 		if (!chan) {
 			sendMsg(cli->getFd(), "ERROR :No such channel\r\n", 26);
@@ -270,7 +270,7 @@ void Server::cmdNOTICE(Client *cli, std::string line) {
 	if (message.empty())
 		return;
 
-	if (target[0] == '#') {
+	if (target[0] == '#' || target[0] == '&') {
 		Channel* chan = getChannelByName(target);
 		if (!chan)
 			return; // canal nao existe
