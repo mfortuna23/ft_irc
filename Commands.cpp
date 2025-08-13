@@ -141,19 +141,19 @@ void	Server::cmdJOIN(Client *a, std::string line){
 		if (!channel.empty() && channel[0] == '#' /*|| channel[0] == '&') */) {
 			Channel *c = getChannelByName(channel);
 			if (!c){
-				channels.push_back(new Channel(channel, a, allKeys[i]));
+				channels.push_back(new Channel(channel, a)); // keys can only be added after the channel is created
 				c = channels.back();
 				c->sendNamesTo(a);
 				++i;
-			} else if (channel[0] != '#'){
-				msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n"; //it is not printing this msg -.-
-				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
 			} else {
 				if (c->getPwd().empty())
 					c->addClient(a);
 				else
 					c->addClient(a, allKeys[i++]);
 			}
+		} else if (channel[0] != '#'){
+				msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n";
+				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
 		}
 	}
 }
