@@ -21,8 +21,8 @@ class Channel {
 	public :
 		Channel();
 		Channel(std::string other);
-		Channel(std::string oName, Client *a);
-		Channel(std::string oName, Client *a, std::string pwd);
+		Channel(std::string oName, Client *cli);
+		Channel(std::string oName, Client *cli, std::string pwd);
 		int			getLimit(void){return limit;};
 		int			getNClients(void){return nClients;};
 		std::string getName(void) const {return name;};
@@ -34,10 +34,10 @@ class Channel {
 		void		addClient(Client *other, std::string pwd);
 		bool		rmClient(Client *other);
 		void		sendMsgChannel(std::string msg);
-		void		modePNA(Client *a, char mode); //mode positive no arguments
-		void		modePWA(Client *a, char mode, std::string args); //mode positive with arguments
-		void		modeNNA(Client *a, char mode); //mode negative no arguments
-		void		modeNWA(Client *a, char mode, std::string args); //mode negative with arguments
+		void		modePNA(Client *cli, char mode); //mode positive no arguments
+		void		modePWA(Client *cli, char mode, std::string args); //mode positive with arguments
+		void		modeNNA(Client *cli, char mode); //mode negative no arguments
+		void		modeNWA(Client *cli, char mode, std::string args); //mode negative with arguments
 		// operator handling //
 		bool		isOperator(Client* c) const; // check if client is operator
 		void		makeOperator(Client* c); // the one who creates or mode +o

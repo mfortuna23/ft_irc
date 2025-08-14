@@ -39,16 +39,16 @@ class Server {
 		std::string get_pass();
 		Client* getClientByNick(const std::string& nick);
 		//cmds
-		void handleCommand(Client *a, std::string line);
+		void handleCommand(Client *cli, std::string line);
 		bool isThisCmd(const std::string& line, std::string cmd);
-		void voidCmd(Client *a, std::string line);
+		void voidCmd(Client *cli, std::string line);
 		void cmdCAP(Client *cli, std::string line);
 		void cmdPASS(Client *cli, std::string line);
 		void cmdNICK(Client *cli, std::string line);
 		void cmdUSER(Client *cli, std::string line);
-		void cmdQUIT(Client *a, std::string line);
+		void cmdQUIT(Client *cli, std::string line);
 		void checkRegistration(Client *cli);
-		void cmdMODE(Client *a, std::string line);
+		void cmdMODE(Client *cli, std::string line);
 		void cmdPRIVMSG(Client *cli, std::string line);
 		void cmdNOTICE(Client *cli, std::string line);
 		void cmdPING(Client *cli, std::string line);
@@ -56,7 +56,7 @@ class Server {
 		void cmdWHOIS(Client *cli, std::string line);
 		//channel cmds
 		Channel* getChannelByName(std::string name);
-		void cmdJOIN(Client *a, std::string line);
+		void cmdJOIN(Client *cli, std::string line);
 		//clean
 		void closeFds();
 		void clearClients(int fd);
