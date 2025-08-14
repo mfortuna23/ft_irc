@@ -273,12 +273,8 @@ void Channel::modePWA(Client *cli, char mode, std::string args){
 			sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
 			return;
 		}
-		if (args.empty()){
-			std::ostringstream e;
-			e << ":server 461 " << cli->get_nick() << " MODE :Not enough parameters\r\n";
-			sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
-			return;
-		}
+		if (args.empty())
+			return ERR_NEEDMOREPARAMS(cli, "MODE");
 		passW = args;
 		out << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		    << " MODE " << name << " +k " << args << "\r\n";
@@ -287,12 +283,8 @@ void Channel::modePWA(Client *cli, char mode, std::string args){
 	}
 
 	if (mode == 'l'){
-		if (args.empty() || !checkNbr(args)){
-			std::ostringstream e;
-			e << ":server 461 " << cli->get_nick() << " MODE :Not enough parameters\r\n";
-			sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
-			return;
-		}
+		if (args.empty() || !checkNbr(args))
+			return ERR_NEEDMOREPARAMS(cli, "MODE (+l)");
 		size_t newLim = std::max<size_t>(1, (size_t)std::atoi(args.c_str()));
 		if (newLim == limit) return;
 		limit = newLim;

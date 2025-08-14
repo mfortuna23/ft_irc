@@ -38,18 +38,6 @@ bool	checkNbr(std::string nbr){
 	return true;
 }
 
-void	ERR_BADCHANMASK(Client *cli, std::string channel){
-	std::stringstream msg;
-	msg << ":server 476 " << cli->get_nick() << " " << channel << " :Bad Channel Mask\r\n";
-	sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
-}
-void	ERR_NOSUCHCHANNEL(Client *cli, std::string channel){
-	std::stringstream msg;
-	msg << ":server 403 " << cli->get_nick() << " " << channel << " :No such channel\r\n";
-	sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
-}
-
-//false 476 bad netmask
 bool	checkChannelName(std::string name){
 	if (name.empty() || (name[0] != '#' && name[0] != '&') || name[1] == 0) //channel cannot be just a #
 		return false ;

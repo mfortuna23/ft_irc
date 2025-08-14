@@ -120,11 +120,8 @@ void	Server::cmdJOIN(Client *cli, std::string line){
 	std::istringstream iss(line);
 	std::string cmd, channel, keys;
 	iss >> cmd >> channel;
-	if (channel.empty()){
-		msg << ":server 461 " << cli->get_nick() << " JOIN :Not enough parameters\r\n";
-		sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
-		return ;
-	}
+	if (channel.empty())
+		return ERR_NEEDMOREPARAMS(cli, "JOIN");
 	std::getline(iss, keys);
 	keys.erase(0, keys.find_first_not_of(" \t\n\r:"));
 	std::istringstream chanStream(channel);
@@ -397,12 +394,8 @@ void Server::cmdMODE(Client *cli, std::string line) {
 	std::istringstream iss(line);
 	std::string cmd, channel, modes;
 	iss >> cmd >> channel;
-	if (channel.empty()) {
-		std::ostringstream err;
-		err << ":server 461 " << cli->get_nick() << " MODE :Not enough parameters\r\n";
-		sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
-		return;
-	}
+	if (channel.empty())
+		return ERR_NEEDMOREPARAMS(cli, "MODE");
 
 	// bool isChannel = channel[0] == '#' || channel[0] == '&';
 	// if (!isChannel) {
@@ -494,23 +487,13 @@ void Server::cmdMODE(Client *cli, std::string line) {
 			// com arg quando '+'
 			case 'k': case 'l': case 'o':
 				if (sign == '+') {
-					if (x >= args.size()) {
-						std::ostringstream err;
-						err << ":server 461 " << cli->get_nick()
-						    << " MODE :Not enough parameters\r\n";
-						sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
-						return;
-					}
+					if (x >= args.size())
+						return ERR_NEEDMOREPARAMS(cli, "MODE (+)");
 					tv->modePWA(cli, c, args[x++]);
 				} else { // '-'
 					if (c == 'o') {
-						if (x >= args.size()) {
-							std::ostringstream err;
-							err << ":server 461 " << cli->get_nick()
-							    << " MODE :Not enough parameters\r\n";
-							sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
-							return;
-						}
+						if (x >= args.size())
+							return ERR_NEEDMOREPARAMS(cli, "MODE");
 						tv->modeNWA(cli, c, args[x++]);
 					} else // -k / -l não usam arg
 						tv->modeNNA(cli, c);
@@ -533,12 +516,8 @@ void Server::cmdWHOIS(Client *cli, std::string line) {
     std::istringstream iss(line);
     std::string cmd, target;
     iss >> cmd >> target;
-    if (target.empty()) {
-        std::ostringstream e;
-        e << ":server 461 " << cli->get_nick() << " WHOIS :Not enough parameters\r\n";
-        sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
-        return;
-    }
+    if (target.empty()) 
+		return ERR_NEEDMOREPARAMS(cli, "WHOIS");
     std::string end;
     end = ":server 318 " + cli->get_nick() + " " + target + " :End of WHOIS list\r\n";
     sendMsg(cli->getFd(), end.c_str(), end.size());
