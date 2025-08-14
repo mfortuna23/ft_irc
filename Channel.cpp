@@ -181,7 +181,7 @@ bool Channel::rmClient(Client *other){
 	if (host == other)
 		host = NULL;
 	if (operators.empty() && !myClients.empty()){
-		Client* newOp = myClients.begin()->second; // qualquer um; simples e eficaz
+		Client* newOp = myClients.begin()->second; // qualquer um; simples e eficaz //pelos testes que fiz. nao parece ser aleatorio. vai para o fd menor
 		makeOperator(newOp);
 		// avisa todos: agora fulano é o novo op
 		std::ostringstream m;

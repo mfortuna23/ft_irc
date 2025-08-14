@@ -105,7 +105,7 @@ void Server::cmdUSER(Client *cli, std::string line) {
 Channel* Server::getChannelByName(std::string name)
 {
 	for (size_t i = 0; i < channels.size(); ++i){
-		if (channels[i]->getName() == name)
+		if (toUpper(channels[i]->getName()) == toUpper(name)) // channels ar not case sensitive
 			return channels[i];
 	}
 	return NULL;
@@ -138,7 +138,7 @@ void	Server::cmdJOIN(Client *a, std::string line){
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
-		if (!channel.empty() && (channel[0] == '#' || channel[0] == '&')) {
+		if (checkChannelName(channel)) {
 			Channel *c = getChannelByName(channel);
 			if (!c){
 				channels.push_back(new Channel(channel, a)); // keys can only be added after the channel is created
@@ -151,10 +151,8 @@ void	Server::cmdJOIN(Client *a, std::string line){
 				else
 					c->addClient(a, allKeys[i++]);
 			}
-		} else if (channel[0] != '#' || channel[0] == '&'){
-				msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n";
-				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
-		}
+		} else
+			error476(a, channel);
 	}
 }
 
@@ -220,6 +218,8 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 	}
 
 	if (target[0] == '#' || target[0] == '&') {
+		if (!checkChannelName(target))
+			return error476(cli, target);
 		Channel* chan = getChannelByName(target);
 		if (!chan) {
 			sendMsg(cli->getFd(), "ERROR :No such channel\r\n", 26);
@@ -271,9 +271,11 @@ void Server::cmdNOTICE(Client *cli, std::string line) {
 		return;
 
 	if (target[0] == '#' || target[0] == '&') {
+		if (!checkChannelName(target))
+			return error476(cli, target);
 		Channel* chan = getChannelByName(target);
 		if (!chan)
-			return; // canal nao existe
+			return; // TODO msg canal nao existe
 
 		std::map<int, Client*> clients = chan->getClients(); // busca todos os clientes atualmente conectados no canal
 		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
@@ -343,7 +345,7 @@ void Server::cmdPART(Client *a, std::string line){
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
-		if (!channel.empty()) {
+		if (checkChannelName(channel)) {
 			tv = getChannelByName(channel);
 			if (!tv) { // canal não existe
 				msg.str(""); msg.clear();
@@ -368,7 +370,8 @@ void Server::cmdPART(Client *a, std::string line){
 				msg.str("");
 				msg.clear();
 			}
-		}
+		} else
+			error476(a, channel);
 	}
 	// remover canal
 	std::vector<std::string> toRemove; // temp list
@@ -404,11 +407,13 @@ void Server::cmdMODE(Client *a, std::string line) {
 		return;
 	}
 
-	bool isChannel = channel[0] == '#' || channel[0] == '&';
-	if (!isChannel) {
-    	if (channel == a->get_nick())
-			return;
-	}
+	// bool isChannel = channel[0] == '#' || channel[0] == '&';
+	// if (!isChannel) {
+    // 	if (channel == a->get_nick())
+	// 		return;
+	// }
+	if (!checkChannelName(channel))
+		return error476(a, channel);
 	Channel *tv = getChannelByName(channel);
 	if (!tv) {
 		std::ostringstream err;
@@ -453,7 +458,6 @@ void Server::cmdMODE(Client *a, std::string line) {
     	sendMsg(a->getFd(), rpl_banned_nicks.str().c_str(), rpl_banned_nicks.str().size());
     	return;
 	}
-
 	// a partir daqui: precisa ser operador
 	if (!tv->isOperator(a)) {
 		std::ostringstream err;
@@ -462,7 +466,6 @@ void Server::cmdMODE(Client *a, std::string line) {
 		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
 		return;
 	}
-
 	// coletar args
 	std::vector<std::string> args;
 	for (std::string tmp; iss >> tmp; ) args.push_back(tmp);
@@ -536,7 +539,6 @@ void Server::cmdMODE(Client *a, std::string line) {
 void Server::cmdWHOIS(Client *cli, std::string line) {
     if (!cli->get_is_registered())
 		return sendErrorRegist(cli);
-
     std::istringstream iss(line);
     std::string cmd, target;
     iss >> cmd >> target;
@@ -546,7 +548,6 @@ void Server::cmdWHOIS(Client *cli, std::string line) {
         sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
         return;
     }
-
     std::string end;
     end = ":server 318 " + cli->get_nick() + " " + target + " :End of WHOIS list\r\n";
     sendMsg(cli->getFd(), end.c_str(), end.size());

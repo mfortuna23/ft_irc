@@ -37,3 +37,22 @@ bool	checkNbr(std::string nbr){
 	}
 	return true;
 }
+
+void	error476(Client *a, std::string channel){
+	std::stringstream msg;
+	msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n";
+	sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
+}
+
+//false 476 bad netmask
+bool	checkChannelName(std::string name){
+	if (name.empty() || (name[0] != '#' && name[0] != '&') || name[1] == 0) //channel cannot be just a #
+		return false ;
+	for (int i = 1; name[i]; i++){
+		if (name[i] < '0' || name[i] == ' ' || name[i] == ':' || name[i] == ';') //invalid channel characters
+			return false ;
+		if (i == 50) //character limit for a channel name
+			return false ;
+	}
+	return true ;
+}
