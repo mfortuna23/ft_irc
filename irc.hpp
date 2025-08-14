@@ -36,7 +36,7 @@
 # define CYAN "\033[36m"
 # define RESET "\033[0m"
 # define BUFFER_SIZE 512 // No message may exceed 512 characters/bytes in length
-
+# define MAX_INPUT_BUFFER 8192 // anti flood
 
 /* ###### UTILS ###### */
 void set_nonblocking(int fd);
