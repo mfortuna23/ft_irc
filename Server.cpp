@@ -104,8 +104,9 @@ void Server::recvNewData(int fd)
 	ssize_t bytes = recv(fd, tmp_buffer, BUFFER_SIZE, 0); // n bytes lidos
 	if (bytes <= 0) {
 		std::cout << "Client disconnected: fd " << fd << std::endl;
-		close(fd); // eh melhor fechar o fd primeiro para torna-lo invalido imediatamente.
-		clearClients(fd); // apesar de fechado o fd continua com o mesmo numero, so nao eh mais valido no kernel
+		cmdQUIT(cli, "quit");
+		//close(fd); // eh melhor fechar o fd primeiro para torna-lo invalido imediatamente.
+		//clearClients(fd); // apesar de fechado o fd continua com o mesmo numero, so nao eh mais valido no kernel
 		return;
 	}
 	cli->get_buffer().append(tmp_buffer, bytes);
@@ -115,8 +116,9 @@ void Server::recvNewData(int fd)
 		std::string err = "ERROR :Line too long\r\n";
 		send(fd, err.c_str(), err.size(), 0);
 		std::cout << RED << "Line too long from fd " << fd << ". YOU ARE NOT following IRC protocol. Disconnecting." << RESET << std::endl;
-		close(fd);
-		clearClients(fd);
+		cmdQUIT(cli, "quit");
+		//close(fd);
+		//clearClients(fd);
 		return;
 	}
 
@@ -128,6 +130,9 @@ void Server::recvNewData(int fd)
 			cli->get_buffer().erase(0, pos + 2); // remove os caracteres da string de 0 ate o \r\n (incluidos)
 			std::cout << "[fd " << fd << "] " << line << std::endl; //TODO apenas para debug
 			handleCommand(cli, line);
+			cli = getClientByFd(fd);
+			if (!cli) // verfica se o cliente ja foi desconectado
+				return;
 		}
 		else
 			break;
