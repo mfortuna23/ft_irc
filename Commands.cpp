@@ -151,7 +151,7 @@ void	Server::cmdJOIN(Client *a, std::string line){
 				else
 					c->addClient(a, allKeys[i++]);
 			}
-		} else if (channel[0] != '#' || channel[0] == '&'){
+		} else if (channel[0] != '#' && channel[0] != '&'){
 				msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n";
 				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
 		}
