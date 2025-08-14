@@ -22,7 +22,7 @@ void Server::serverInit(int newPort, std::string newPassword){
 			throw (std::runtime_error("Poll() failed"));
 		}
 		for (size_t i = 0; i < fds.size(); i++){
-			if ((fds[i].revents & POLLIN) == true){
+			if (fds[i].revents & POLLIN){
 				if (fds[i].fd == ServSockFd)
 					acceptNewClient();
 				else
@@ -111,21 +111,18 @@ void Server::recvNewData(int fd)
 	}
 	cli->get_buffer().append(tmp_buffer, bytes);
 
-	// verifica se o buffer ultrapassou 512 sem um '\n' → desconecta
-	if (cli->get_buffer().size() > 512) {
-		std::string err = "ERROR :Line too long\r\n";
-		send(fd, err.c_str(), err.size(), 0);
-		std::cout << RED << "Line too long from fd " << fd << ". YOU ARE NOT following IRC protocol. Disconnecting." << RESET << std::endl;
-		cmdQUIT(cli, "quit");
-		//close(fd);
-		//clearClients(fd);
-		return;
-	}
-
 	while (true){
 		size_t pos = cli->get_buffer().find("\r\n");
 		if (pos != std::string::npos) // se encontro \r\n
 		{
+			if (pos > 510) { // a verificaçao deve ficar dentro do loop para estar sempre checando se a linha passou de 512 bytes ("\r\n" incluidos)
+				std::string err = "ERROR :Line too long\r\n";
+				sendMsg(fd, err.c_str(), err.size());
+				std::cout << RED << "Line too long from fd " << fd << ". YOU ARE NOT following IRC protocol. Disconnecting." << RESET << std::endl;
+				cmdQUIT(cli, "quit");
+				return;
+			}
+
 			std::string line = cli->get_buffer().substr(0, pos); // cria uma substring da posicao 0 até \r\n (sem inclui-lo)
 			cli->get_buffer().erase(0, pos + 2); // remove os caracteres da string de 0 ate o \r\n (incluidos)
 			std::cout << "[fd " << fd << "] " << line << std::endl; //TODO apenas para debug
@@ -134,8 +131,14 @@ void Server::recvNewData(int fd)
 			if (!cli) // verfica se o cliente ja foi desconectado
 				return;
 		}
-		else
+		else {
+			if (cli->get_buffer().size() > MAX_INPUT_BUFFER) {
+				std::string err = "ERROR :Input buffer overflow\r\n";
+				sendMsg(fd, err.c_str(), err.size());
+				cmdQUIT(cli, "quit");
+			}
 			break;
+		}
 	}
 }
 
@@ -152,7 +155,7 @@ void Server::handleCommand(Client *a, std::string line){
 			return ;
 		}
 	}
-	std::string response = "ERROR :Unknown command\r\n";
+	std::string response = ":server 421 :Unknown command\r\n";
 	sendMsg(a->getFd(), response.c_str(), response.size());
 }
 

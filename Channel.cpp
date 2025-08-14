@@ -198,7 +198,7 @@ void	Channel::sendMsgChannel(std::string msg){
 	for (it = myClients.begin(); it != myClients.end(); ++it) {
 		Client* client = it->second; 
 		if (client)
-			send(client->getFd(), msg.c_str(), msg.size(), 0);
+			sendMsg(client->getFd(), msg.c_str(), msg.size());
 	}
 }
 
