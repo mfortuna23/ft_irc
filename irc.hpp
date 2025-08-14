@@ -41,9 +41,14 @@
 /* ###### UTILS ###### */
 void set_nonblocking(int fd);
 void sendMsg(int fd, const char *buffer, size_t len);
-std::string startMsg(Client *a);
+std::string startMsg(Client *cli);
 std::string toUpper(const std::string &str);
 bool	checkNbr(std::string nbr);
-/* ##### COMMANDS ##### */
+bool	checkChannelName(std::string name);
+
+/* ##### Error ##### */
+void	ERR_BADCHANMASK(Client *cli, std::string channel);
+void	ERR_NOSUCHCHANNEL(Client *cli, std::string channel);
+void	ERR_NEEDMOREPARAMS(Client *cli, std::string cmd);
 
 #endif

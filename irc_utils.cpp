@@ -15,9 +15,9 @@ void sendMsg(int fd, const char *buffer, size_t len){
     }
 }
 
-std::string startMsg(Client *a){
+std::string startMsg(Client *cli){
 	std::stringstream msg;
-	msg << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp();
+	msg << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp();
 	std::cout << msg.str() << std::endl;
 	return msg.str();
 }
@@ -36,4 +36,16 @@ bool	checkNbr(std::string nbr){
 			return false;
 	}
 	return true;
+}
+
+bool	checkChannelName(std::string name){
+	if (name.empty() || (name[0] != '#' && name[0] != '&') || name[1] == 0) //channel cannot be just a #
+		return false ;
+	for (int i = 1; name[i]; i++){
+		if (name[i] < '0' || name[i] == ' ' || name[i] == ':' || name[i] == ';') //invalid channel characters
+			return false ;
+		if (i == 50) //character limit for a channel name
+			return false ;
+	}
+	return true ;
 }

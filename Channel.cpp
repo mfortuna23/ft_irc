@@ -27,9 +27,9 @@ Channel::Channel(std::string other){
 	topicRestrict = false;
 }
 
-Channel::Channel(std::string oName, Client *a){
+Channel::Channel(std::string oName, Client *cli){
 	name = oName;
-	host = a;
+	host = cli;
 	passW = "";
 	type = 0;
 	nClients = 1;
@@ -37,20 +37,20 @@ Channel::Channel(std::string oName, Client *a){
 	inviteOnly = false;
 	topicRestrict = false;
 
-	a->newChannel(this);
-	myClients.insert(std::make_pair(a->getFd(), a));
-	makeOperator(a); // creator é op
+	cli->newChannel(this);
+	myClients.insert(std::make_pair(cli->getFd(), cli));
+	makeOperator(cli); // creator é op
 
 	std::stringstream msg;
-	msg << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+	msg << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 	    << " JOIN :" << name << "\r\n";
 	sendMsgChannel(msg.str());
-	//sendNamesTo(a);
+	//sendNamesTo(cli);
 }
 
-Channel::Channel(std::string oName, Client *a, std::string pwd){
+Channel::Channel(std::string oName, Client *cli, std::string pwd){
 	name = oName;
-	host = a;
+	host = cli;
 	passW = pwd;
 	type = 0;
 	nClients = 1;
@@ -58,15 +58,15 @@ Channel::Channel(std::string oName, Client *a, std::string pwd){
 	inviteOnly = false;
 	topicRestrict = false;
 
-	a->newChannel(this);
-	myClients.insert(std::make_pair(a->getFd(), a));
-	makeOperator(a); // creator é op
+	cli->newChannel(this);
+	myClients.insert(std::make_pair(cli->getFd(), cli));
+	makeOperator(cli); // creator é op
 
 	std::stringstream msg;
-	msg << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+	msg << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 	    << " JOIN :" << name << "\r\n";
 	sendMsgChannel(msg.str());
-	//sendNamesTo(a);
+	//sendNamesTo(cli);
 }
 
 Channel &Channel::operator=(const Channel &other){
@@ -181,7 +181,7 @@ bool Channel::rmClient(Client *other){
 	if (host == other)
 		host = NULL;
 	if (operators.empty() && !myClients.empty()){
-		Client* newOp = myClients.begin()->second; // qualquer um; simples e eficaz
+		Client* newOp = myClients.begin()->second; // qualquer um; simples e eficaz //pelos testes que fiz. nao parece ser aleatorio. vai para o fd menor
 		makeOperator(newOp);
 		// avisa todos: agora fulano é o novo op
 		std::ostringstream m;
@@ -204,12 +204,12 @@ void	Channel::sendMsgChannel(std::string msg){
 
 //static std::string itos(size_t n){ std::ostringstream o; o<<n; return o.str(); }
 
-void Channel::modePNA(Client *a, char mode){
+void Channel::modePNA(Client *cli, char mode){
 	std::ostringstream b;
 	if (mode == 'i'){
 		if (inviteOnly) return;
 		inviteOnly = true;
-		b << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		b << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		  << " MODE " << name << " +i\r\n";
 		sendMsgChannel(b.str());
 		return;
@@ -217,19 +217,19 @@ void Channel::modePNA(Client *a, char mode){
 	if (mode == 't'){
 		if (topicRestrict) return;
 		topicRestrict = true;
-		b << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		b << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		  << " MODE " << name << " +t\r\n";
 		sendMsgChannel(b.str());
 		return;
 	}
 }
 
-void Channel::modeNNA(Client *a, char mode){
+void Channel::modeNNA(Client *cli, char mode){
 	std::ostringstream b;
 	if (mode == 'i'){
 		if (!inviteOnly) return;
 		inviteOnly = false;
-		b << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		b << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		  << " MODE " << name << " -i\r\n";
 		sendMsgChannel(b.str());
 		return;
@@ -237,7 +237,7 @@ void Channel::modeNNA(Client *a, char mode){
 	if (mode == 't'){
 		if (!topicRestrict) return;
 		topicRestrict = false;
-		b << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		b << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		  << " MODE " << name << " -t\r\n";
 		sendMsgChannel(b.str());
 		return;
@@ -245,7 +245,7 @@ void Channel::modeNNA(Client *a, char mode){
 	if (mode == 'k'){ // remove key sem arg (comport. comum)
 		if (!passW.empty()){
 			passW.clear();
-			b << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+			b << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 			  << " MODE " << name << " -k\r\n";
 			sendMsgChannel(b.str());
 		}
@@ -254,7 +254,7 @@ void Channel::modeNNA(Client *a, char mode){
 	if (mode == 'l'){ // remove limite
 		if (limit != 0){
 			limit = 0;
-			b << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+			b << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 			  << " MODE " << name << " -l\r\n";
 			sendMsgChannel(b.str());
 		}
@@ -262,41 +262,33 @@ void Channel::modeNNA(Client *a, char mode){
 	}
 }
 
-void Channel::modePWA(Client *a, char mode, std::string args){
+void Channel::modePWA(Client *cli, char mode, std::string args){
 	std::ostringstream out;
 
 	if (mode == 'k'){
 		if (!passW.empty()){
 			std::ostringstream e;
-			e << ":server 467 " << a->get_nick() << " " << name
+			e << ":server 467 " << cli->get_nick() << " " << name
 			  << " :Channel key already set\r\n"; // ERR_KEYSET
-			sendMsg(a->getFd(), e.str().c_str(), e.str().size());
+			sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
 			return;
 		}
-		if (args.empty()){
-			std::ostringstream e;
-			e << ":server 461 " << a->get_nick() << " MODE :Not enough parameters\r\n";
-			sendMsg(a->getFd(), e.str().c_str(), e.str().size());
-			return;
-		}
+		if (args.empty())
+			return ERR_NEEDMOREPARAMS(cli, "MODE");
 		passW = args;
-		out << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		out << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		    << " MODE " << name << " +k " << args << "\r\n";
 		sendMsgChannel(out.str());
 		return;
 	}
 
 	if (mode == 'l'){
-		if (args.empty() || !checkNbr(args)){
-			std::ostringstream e;
-			e << ":server 461 " << a->get_nick() << " MODE :Not enough parameters\r\n";
-			sendMsg(a->getFd(), e.str().c_str(), e.str().size());
-			return;
-		}
+		if (args.empty() || !checkNbr(args))
+			return ERR_NEEDMOREPARAMS(cli, "MODE (+l)");
 		size_t newLim = std::max<size_t>(1, (size_t)std::atoi(args.c_str()));
 		if (newLim == limit) return;
 		limit = newLim;
-		out << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		out << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		    << " MODE " << name << " +l " << args << "\r\n";
 		sendMsgChannel(out.str());
 		return;
@@ -306,33 +298,33 @@ void Channel::modePWA(Client *a, char mode, std::string args){
 		Client* target = getMemberByNick(args);
 		if (!target){
 			std::ostringstream e;
-			e << ":server 441 " << a->get_nick() << " " << args << " " << name
+			e << ":server 441 " << cli->get_nick() << " " << args << " " << name
 			  << " :They aren't on that channel\r\n"; // ERR_USERNOTINCHANNEL
-			sendMsg(a->getFd(), e.str().c_str(), e.str().size());
+			sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
 			return;
 		}
 		if (isOperator(target)) return; // já é op
 		makeOperator(target);
-		out << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		out << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		    << " MODE " << name << " +o " << args << "\r\n";
 		sendMsgChannel(out.str());
 		return;
 	}
 }
 
-void Channel::modeNWA(Client *a, char mode, std::string args){
+void Channel::modeNWA(Client *cli, char mode, std::string args){
 	if (mode == 'o'){
 		std::ostringstream out;
 		Client* target = getMemberByNick(args);
 		if (!target){
 			std::ostringstream e;
-			e << ":server 441 " << a->get_nick() << " " << args << " " << name
+			e << ":server 441 " << cli->get_nick() << " " << args << " " << name
 			  << " :They aren't on that channel\r\n";
-			sendMsg(a->getFd(), e.str().c_str(), e.str().size());
+			sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
 			return;
 		}
 		if (!removeOperator(target)) return; // não era op
-		out << ":" << a->get_nick() << "!~" << a->get_user() << "@" << a->getIp()
+		out << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 		    << " MODE " << name << " -o " << args << "\r\n";
 		sendMsgChannel(out.str());
 		return;

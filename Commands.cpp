@@ -105,26 +105,23 @@ void Server::cmdUSER(Client *cli, std::string line) {
 Channel* Server::getChannelByName(std::string name)
 {
 	for (size_t i = 0; i < channels.size(); ++i){
-		if (channels[i]->getName() == name)
+		if (toUpper(channels[i]->getName()) == toUpper(name)) // channels ar not case sensitive
 			return channels[i];
 	}
 	return NULL;
 }
 
 
-void	Server::cmdJOIN(Client *a, std::string line){
+void	Server::cmdJOIN(Client *cli, std::string line){
 	std::stringstream msg;
-	if (!a->get_is_registered())
-		return sendErrorRegist(a);
+	if (!cli->get_is_registered())
+		return sendErrorRegist(cli);
 
 	std::istringstream iss(line);
 	std::string cmd, channel, keys;
 	iss >> cmd >> channel;
-	if (channel.empty()){
-		msg << ":server 461 " << a->get_nick() << " JOIN :Not enough parameters\r\n";
-		sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
-		return ;
-	}
+	if (channel.empty())
+		return ERR_NEEDMOREPARAMS(cli, "JOIN");
 	std::getline(iss, keys);
 	keys.erase(0, keys.find_first_not_of(" \t\n\r:"));
 	std::istringstream chanStream(channel);
@@ -138,35 +135,33 @@ void	Server::cmdJOIN(Client *a, std::string line){
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
-		if (!channel.empty() && (channel[0] == '#' || channel[0] == '&')) {
+		if (checkChannelName(channel)) {
 			Channel *c = getChannelByName(channel);
 			if (!c){
-				channels.push_back(new Channel(channel, a)); // keys can only be added after the channel is created
+				channels.push_back(new Channel(channel, cli)); // keys can only be added after the channel is created
 				c = channels.back();
-				c->sendNamesTo(a);
+				c->sendNamesTo(cli);
 				++i;
 			} else {
 				if (c->getPwd().empty())
-					c->addClient(a);
+					c->addClient(cli);
 				else
-					c->addClient(a, allKeys[i++]);
+					c->addClient(cli, allKeys[i++]);
 			}
-		} else if (channel[0] != '#' && channel[0] != '&'){
-				msg << ":server 476 " << a->get_nick() << " " << channel << " :Bad Channel Mask\r\n";
-				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size()); msg.str(""); msg.clear();
-		}
+		} else
+			ERR_BADCHANMASK(cli, channel);
 	}
 }
 
-void Server::cmdQUIT(Client *a, std::string line){
+void Server::cmdQUIT(Client *cli, std::string line){
 	(void)line;
 
 	std::stringstream msg;
-	msg << startMsg(a) << " QUIT :Leaving\r\n";
+	msg << startMsg(cli) << " QUIT :Leaving\r\n";
 	std::string quit_msg = msg.str();
 
 	// copia o map para uma variável local, oque evita modificar ou iterar diretamente sobre o map original 
-	std::map<std::string, Channel*> chansMap = a->getChannels();
+	std::map<std::string, Channel*> chansMap = cli->getChannels();
 
 	// constrói um vetor de ponteiros apenas para Channel, assim temos de forma segura nesse vetor todos os canais aos quais o cliente pertence no momento do QUIT
 	std::vector<Channel*> chans;
@@ -176,7 +171,7 @@ void Server::cmdQUIT(Client *a, std::string line){
 	std::vector<std::string> toRemove;
 	for (size_t i = 0; i < chans.size(); ++i) {
 		Channel *ch = chans[i];
-		ch->rmClient(a);
+		ch->rmClient(cli);
 		ch->sendMsgChannel(quit_msg);
 		if (ch->getClients().empty())
 			toRemove.push_back(ch->getName());
@@ -192,9 +187,9 @@ void Server::cmdQUIT(Client *a, std::string line){
 		}
 	}
 
-	sendMsg(a->getFd(), quit_msg.c_str(), quit_msg.size());
-	close(a->getFd());
-	clearClients(a->getFd());
+	sendMsg(cli->getFd(), quit_msg.c_str(), quit_msg.size());
+	close(cli->getFd());
+	clearClients(cli->getFd());
 }
 
 void Server::cmdPRIVMSG(Client *cli, std::string line) {
@@ -220,6 +215,8 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 	}
 
 	if (target[0] == '#' || target[0] == '&') {
+		if (!checkChannelName(target))
+			return ERR_BADCHANMASK(cli, target);
 		Channel* chan = getChannelByName(target);
 		if (!chan) {
 			sendMsg(cli->getFd(), "ERROR :No such channel\r\n", 26);
@@ -271,9 +268,11 @@ void Server::cmdNOTICE(Client *cli, std::string line) {
 		return;
 
 	if (target[0] == '#' || target[0] == '&') {
+		if (!checkChannelName(target))
+			return ERR_BADCHANMASK(cli, target);
 		Channel* chan = getChannelByName(target);
 		if (!chan)
-			return; // canal nao existe
+			return ERR_NOSUCHCHANNEL(cli, target);
 
 		std::map<int, Client*> clients = chan->getClients(); // busca todos os clientes atualmente conectados no canal
 		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
@@ -316,10 +315,10 @@ void Server::cmdPING(Client *cli, std::string line) {
 }
 
 //leave channels
-void Server::cmdPART(Client *a, std::string line){
+void Server::cmdPART(Client *cli, std::string line){
 	std::stringstream msg;
-	if (!a->get_is_registered())
-		return sendErrorRegist(a);
+	if (!cli->get_is_registered())
+		return sendErrorRegist(cli);
 	std::istringstream iss(line);
 	std::string cmd, channel, leave;
 	iss >> cmd >> channel;
@@ -343,32 +342,30 @@ void Server::cmdPART(Client *a, std::string line){
 	while (std::getline(chanStream, channel, ',')) {
 		channel.erase(0, channel.find_first_not_of(" \t"));
 		channel.erase(channel.find_last_not_of(" \t") + 1);
-		if (!channel.empty()) {
+		if (checkChannelName(channel)) {
 			tv = getChannelByName(channel);
 			if (!tv) { // canal não existe
-				msg.str(""); msg.clear();
-				msg << ":server 403 " << a->get_nick() << " " << channel
-					<< " :No such channel\r\n";
-				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+				ERR_NOSUCHCHANNEL(cli, channel);
 				continue;
 			}
-			if (!tv->isMember(a)) { // user não está no canal
+			if (!tv->isMember(cli)) { // user não está no canal
 				msg.str(""); msg.clear();
-				msg << ":server 442 " << a->get_nick() << " " << channel
+				msg << ":server 442 " << cli->get_nick() << " " << channel
 					<< " :You're not on that channel\r\n";
-				sendMsg(a->getFd(), msg.str().c_str(), msg.str().size());
+				sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
 				continue;
 			}
-			if (tv && tv->rmClient(a)){
+			if (tv && tv->rmClient(cli)){
 				msg.str(""); msg.clear();
-				msg << startMsg(a) << " PART " << tv->getName() << " " << leave << "\r\n";
+				msg << startMsg(cli) << " PART " << tv->getName() << " " << leave << "\r\n";
 				std::string part_msg = msg.str();
 				tv->sendMsgChannel(part_msg);
-				sendMsg(a->getFd(), part_msg.c_str(), part_msg.size());
+				sendMsg(cli->getFd(), part_msg.c_str(), part_msg.size());
 				msg.str("");
 				msg.clear();
 			}
-		}
+		} else
+			ERR_BADCHANMASK(cli, channel);
 	}
 	// remover canal
 	std::vector<std::string> toRemove; // temp list
@@ -388,47 +385,39 @@ void Server::cmdPART(Client *a, std::string line){
 
 }
 
-void Server::cmdMODE(Client *a, std::string line) {
+void Server::cmdMODE(Client *cli, std::string line) {
 	// 1) registration
-	if (!a->get_is_registered())
-		return sendErrorRegist(a);
+	if (!cli->get_is_registered())
+		return sendErrorRegist(cli);
 
 	// 2) parse
 	std::istringstream iss(line);
 	std::string cmd, channel, modes;
 	iss >> cmd >> channel;
-	if (channel.empty()) {
-		std::ostringstream err;
-		err << ":server 461 " << a->get_nick() << " MODE :Not enough parameters\r\n";
-		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
-		return;
-	}
+	if (channel.empty())
+		return ERR_NEEDMOREPARAMS(cli, "MODE");
 
-	bool isChannel = channel[0] == '#' || channel[0] == '&';
-	if (!isChannel) {
-    	if (channel == a->get_nick())
-			return;
-	}
+	// bool isChannel = channel[0] == '#' || channel[0] == '&';
+	// if (!isChannel) {
+    // 	if (channel == cli->get_nick())
+	// 		return;
+	// }
+	if (!checkChannelName(channel))
+		return ERR_BADCHANMASK(cli, channel);
 	Channel *tv = getChannelByName(channel);
-	if (!tv) {
-		std::ostringstream err;
-		err << ":server 403 " << a->get_nick() << " " << channel << " :No such channel\r\n";
-		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
-		return;
-	}
+	if (!tv)
+		return ERR_NOSUCHCHANNEL(cli, channel);
 
 	// Se o usuário não está no canal: 442
-	if (!tv->isMember(a)) {
+	if (!tv->isMember(cli)) {
 		std::ostringstream err;
-		err << ":server 442 " << a->get_nick() << " " << channel
+		err << ":server 442 " << cli->get_nick() << " " << channel
 		    << " :You're not on that channel\r\n";
-		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
+		sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
 		return;
 	}
-
 	// ler 'modes' (se existir)
 	iss >> modes;
-
 	// Caso "consulta": MODE #canal
 	if (modes.empty()) {
 		std::string flags = "+";
@@ -440,38 +429,36 @@ void Server::cmdMODE(Client *a, std::string line) {
 			std::ostringstream o; o << tv->getLimit(); args.push_back(o.str()); }
 
 		std::ostringstream rpl;
-		rpl << ":server 324 " << a->get_nick() << " " << channel << " " << flags;
+		rpl << ":server 324 " << cli->get_nick() << " " << channel << " " << flags;
 		for (size_t i = 0; i < args.size(); ++i) rpl << " " << args[i];
 		rpl << "\r\n";
-		sendMsg(a->getFd(), rpl.str().c_str(), rpl.str().size());
+		sendMsg(cli->getFd(), rpl.str().c_str(), rpl.str().size());
 		return;
 	}
 	// nao precisamos lidar com nicks banidos.
 	if (modes == "b" || modes == "B") {
 		std::ostringstream rpl_banned_nicks;
-    	rpl_banned_nicks << ":server 368 " << a->get_nick() << " " << channel << " :End of Channel Ban List\r\n";
-    	sendMsg(a->getFd(), rpl_banned_nicks.str().c_str(), rpl_banned_nicks.str().size());
+    	rpl_banned_nicks << ":server 368 " << cli->get_nick() << " " << channel << " :End of Channel Ban List\r\n";
+    	sendMsg(cli->getFd(), rpl_banned_nicks.str().c_str(), rpl_banned_nicks.str().size());
     	return;
 	}
-
 	// a partir daqui: precisa ser operador
-	if (!tv->isOperator(a)) {
+	if (!tv->isOperator(cli)) {
 		std::ostringstream err;
-		err << ":server 482 " << a->get_nick() << " " << channel
+		err << ":server 482 " << cli->get_nick() << " " << channel
 		    << " :You're not channel operator\r\n";
-		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
+		sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
 		return;
 	}
-
 	// coletar args
 	std::vector<std::string> args;
 	for (std::string tmp; iss >> tmp; ) args.push_back(tmp);
 
 	if (modes[0] != '+' && modes[0] != '-') {
 		std::ostringstream err;
-		err << ":server 472 " << a->get_nick() << " " << modes
+		err << ":server 472 " << cli->get_nick() << " " << modes
 		    << " :is unknown mode char to me\r\n";
-		sendMsg(a->getFd(), err.str().c_str(), err.str().size());
+		sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
 		return;
 	}
 	char sign = 0;
@@ -482,9 +469,9 @@ void Server::cmdMODE(Client *a, std::string line) {
 
 		if (sign != '+' && sign != '-') {
 			std::ostringstream err;
-			err << ":server 472 " << a->get_nick() << " " << c
+			err << ":server 472 " << cli->get_nick() << " " << c
 			    << " :is unknown mode char to me\r\n";
-			sendMsg(a->getFd(), err.str().c_str(), err.str().size());
+			sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
 			return;
 		}
 
@@ -492,41 +479,31 @@ void Server::cmdMODE(Client *a, std::string line) {
 			// sem arg
 			case 'i': case 't':
 				if (sign == '+')
-					tv->modePNA(a, c);
+					tv->modePNA(cli, c);
 				else
-					tv->modeNNA(a, c);
+					tv->modeNNA(cli, c);
 				break;
 
 			// com arg quando '+'
 			case 'k': case 'l': case 'o':
 				if (sign == '+') {
-					if (x >= args.size()) {
-						std::ostringstream err;
-						err << ":server 461 " << a->get_nick()
-						    << " MODE :Not enough parameters\r\n";
-						sendMsg(a->getFd(), err.str().c_str(), err.str().size());
-						return;
-					}
-					tv->modePWA(a, c, args[x++]);
+					if (x >= args.size())
+						return ERR_NEEDMOREPARAMS(cli, "MODE (+)");
+					tv->modePWA(cli, c, args[x++]);
 				} else { // '-'
 					if (c == 'o') {
-						if (x >= args.size()) {
-							std::ostringstream err;
-							err << ":server 461 " << a->get_nick()
-							    << " MODE :Not enough parameters\r\n";
-							sendMsg(a->getFd(), err.str().c_str(), err.str().size());
-							return;
-						}
-						tv->modeNWA(a, c, args[x++]);
+						if (x >= args.size())
+							return ERR_NEEDMOREPARAMS(cli, "MODE");
+						tv->modeNWA(cli, c, args[x++]);
 					} else // -k / -l não usam arg
-						tv->modeNNA(a, c);
+						tv->modeNNA(cli, c);
 				}
 				break;
 
 			default: {
 				std::ostringstream err;
-				err << ":server 472 " << a->get_nick() << " " << c << " :is unknown mode char to me\r\n";
-				sendMsg(a->getFd(), err.str().c_str(), err.str().size());
+				err << ":server 472 " << cli->get_nick() << " " << c << " :is unknown mode char to me\r\n";
+				sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
 				return;
 			}
 		}
@@ -536,17 +513,11 @@ void Server::cmdMODE(Client *a, std::string line) {
 void Server::cmdWHOIS(Client *cli, std::string line) {
     if (!cli->get_is_registered())
 		return sendErrorRegist(cli);
-
     std::istringstream iss(line);
     std::string cmd, target;
     iss >> cmd >> target;
-    if (target.empty()) {
-        std::ostringstream e;
-        e << ":server 461 " << cli->get_nick() << " WHOIS :Not enough parameters\r\n";
-        sendMsg(cli->getFd(), e.str().c_str(), e.str().size());
-        return;
-    }
-
+    if (target.empty()) 
+		return ERR_NEEDMOREPARAMS(cli, "WHOIS");
     std::string end;
     end = ":server 318 " + cli->get_nick() + " " + target + " :End of WHOIS list\r\n";
     sendMsg(cli->getFd(), end.c_str(), end.size());
