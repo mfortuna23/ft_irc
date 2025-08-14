@@ -397,13 +397,11 @@ void Server::cmdMODE(Client *cli, std::string line) {
 	if (channel.empty())
 		return ERR_NEEDMOREPARAMS(cli, "MODE");
 
-	// bool isChannel = channel[0] == '#' || channel[0] == '&';
-	// if (!isChannel) {
-    // 	if (channel == cli->get_nick())
-	// 		return;
-	// }
-	if (!checkChannelName(channel))
+	if (!checkChannelName(channel)){
+		if (channel == cli->get_nick()) // faltava manter esta condiçao para quando o irssi envia "mode nick +i"
+			return;
 		return ERR_BADCHANMASK(cli, channel);
+	}
 	Channel *tv = getChannelByName(channel);
 	if (!tv)
 		return ERR_NOSUCHCHANNEL(cli, channel);
@@ -521,4 +519,71 @@ void Server::cmdWHOIS(Client *cli, std::string line) {
     std::string end;
     end = ":server 318 " + cli->get_nick() + " " + target + " :End of WHOIS list\r\n";
     sendMsg(cli->getFd(), end.c_str(), end.size());
+}
+
+void Server::cmdKICK(Client *cli, std::string line) {
+	if (!cli->get_is_registered())
+		sendErrorRegist(cli);
+	std::istringstream iss(line);
+	std::string cmd, chan, victim;
+	iss >> cmd >> chan >> victim;
+
+	if (chan.empty() || victim.empty())
+        return ERR_NEEDMOREPARAMS(cli, "KICK");
+
+	if (!checkChannelName(chan))
+        return ERR_BADCHANMASK(cli, chan);
+	
+	std::string reason;
+	size_t pos = line.find(" :"); // procura pelo ':' pois a reason vem logo depois.
+	if (pos != std::string::npos)
+		reason = line.substr(pos + 2); // achamos a reason;
+	if (reason.empty())
+		reason = cli->get_nick(); // resposta padrao quando nao se tem uma reason;
+	
+	Channel *ch = getChannelByName(chan);
+		if (!ch)
+			return ERR_NOSUCHCHANNEL(cli, chan);
+	
+	if (!ch->isMember(cli)) {
+		std::string err = ":server 442 " + cli->get_nick() + " " + chan + " :You're not on that channel\r\n";
+		sendMsg(cli->getFd(), err.c_str(), err.size());
+		return;
+	}
+
+	if (!ch->isOperator(cli)) {
+        std::string err = ":server 482 " + cli->get_nick() + " " + chan + " :You're not channel operator\r\n";
+        sendMsg(cli->getFd(), err.c_str(), err.size());
+        return;
+    }
+
+	Client *v = getClientByNick(victim);
+    if (!v) {
+        std::string err = ":server 401 " + cli->get_nick() + " " + victim + " :No such nick/channel\r\n";
+        sendMsg(cli->getFd(), err.c_str(), err.size());
+        return;
+    }
+    if (!ch->isMember(v)) {
+        std::string err = ":server 441 " + cli->get_nick() + " " + victim + " " + chan + " :They aren't on that channel\r\n";
+        sendMsg(cli->getFd(), err.c_str(), err.size());
+        return;
+    }
+
+	std::ostringstream kickmsg;
+    kickmsg << startMsg(cli) << " KICK " << ch->getName() << " " << v->get_nick() << " :" << reason << "\r\n";
+    std::string out = kickmsg.str();
+
+    ch->sendMsgChannel(out);
+    ch->rmClient(v);
+
+    // Se o canal ficou vazio, remove da lista do servidor (o kicker pode se kickar)
+    if (ch->getClients().empty()) {
+        for (size_t i = 0; i < channels.size(); ++i) {
+            if (channels[i] == ch) {
+                delete channels[i];
+                channels.erase(channels.begin() + i);
+                break;
+            }
+        }
+    }
 }

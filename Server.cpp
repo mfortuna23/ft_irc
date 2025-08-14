@@ -147,7 +147,7 @@ void Server::handleCommand(Client *cli, std::string line){
 	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO", "WHOIS"};
 	void (Server::*fCmds[17])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
 		&Server::cmdCAP, &Server::cmdPING, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
-		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
+		&Server::cmdKICK, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
 	for (size_t i = 0; i < 17; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
@@ -156,7 +156,7 @@ void Server::handleCommand(Client *cli, std::string line){
 		}
 	}
 	std::string response = ":server 421 :Unknown command\r\n";
-	sendMsg(a->getFd(), response.c_str(), response.size());
+	sendMsg(cli->getFd(), response.c_str(), response.size());
 }
 
 
