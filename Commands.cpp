@@ -364,7 +364,7 @@ void Server::cmdPART(Client *cli, std::string line){
 				msg.clear();
 			}
 		} else
-			ERR_BADCHANMASK(cli, channel);
+			ERR_NOSUCHCHANNEL(cli, channel);
 	}
 	// remover canal
 	std::vector<std::string> toRemove; // temp list
