@@ -155,7 +155,7 @@ void Server::handleCommand(Client *cli, std::string line){
 			return ;
 		}
 	}
-	std::string response = ":server 421 :Unknown command\r\n";
+	std::string response = ":server 421" + cli->get_nick() + " " + line + " :Unknown command\r\n";
 	sendMsg(cli->getFd(), response.c_str(), response.size());
 }
 
@@ -232,6 +232,8 @@ void Server::checkRegistration(Client *cli)
 	// 001 RPL_WELCOME
 	std::string msg = ":server 001 " + cli->get_nick() + " :Welcome to the IRC server\r\n";
 	sendMsg(cli->getFd(), msg.c_str(), msg.size());
+	std::string msg2 = "You're now known as " + cli->get_nick() + "\r\n";
+	sendMsg(cli->getFd(), msg2.c_str(), msg2.size());
 }
 
 Client* Server::getClientByNick(const std::string& nick) {

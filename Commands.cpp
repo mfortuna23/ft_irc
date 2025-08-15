@@ -70,8 +70,8 @@ void Server::cmdNICK(Client *cli, std::string line) {
 	}
 	cli->set_nickname(nick);
 
-	std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
-	sendMsg(cli->getFd(), msg.c_str(), msg.size());
+	//std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
+	//sendMsg(cli->getFd(), msg.c_str(), msg.size());
 	// if (cli->get_regist_steps() == 2)
 	// 	cli->confirm_regist_step(this);
 	tryFinishRegistration(cli);
@@ -350,8 +350,7 @@ void Server::cmdPART(Client *cli, std::string line){
 			}
 			if (!tv->isMember(cli)) { // user não está no canal
 				msg.str(""); msg.clear();
-				msg << ":server 442 " << cli->get_nick() << " " << channel
-					<< " :You're not on that channel\r\n";
+				msg << ":server 442 " << cli->get_nick() << " " << channel << " :You're not on that channel\r\n";
 				sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
 				continue;
 			}
@@ -408,10 +407,8 @@ void Server::cmdMODE(Client *cli, std::string line) {
 
 	// Se o usuário não está no canal: 442
 	if (!tv->isMember(cli)) {
-		std::ostringstream err;
-		err << ":server 442 " << cli->get_nick() << " " << channel
-		    << " :You're not on that channel\r\n";
-		sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+		std::string err = ":server 442 " + cli->get_nick() + " " + channel + " :You're not on that channel\r\n";
+		sendMsg(cli->getFd(), err.c_str(), err.size());
 		return;
 	}
 	// ler 'modes' (se existir)
@@ -435,28 +432,23 @@ void Server::cmdMODE(Client *cli, std::string line) {
 	}
 	// nao precisamos lidar com nicks banidos.
 	if (modes == "b" || modes == "B") {
-		std::ostringstream rpl_banned_nicks;
-    	rpl_banned_nicks << ":server 368 " << cli->get_nick() << " " << channel << " :End of Channel Ban List\r\n";
-    	sendMsg(cli->getFd(), rpl_banned_nicks.str().c_str(), rpl_banned_nicks.str().size());
+		std::string rpl_banned_nicks = ":server 368 " + cli->get_nick() + " " + channel + " :End of Channel Ban List\r\n";
+    	sendMsg(cli->getFd(), rpl_banned_nicks.c_str(), rpl_banned_nicks.size());
     	return;
 	}
 	// a partir daqui: precisa ser operador
 	if (!tv->isOperator(cli)) {
-		std::ostringstream err;
-		err << ":server 482 " << cli->get_nick() << " " << channel
-		    << " :You're not channel operator\r\n";
-		sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
-		return;
+		std::string err = ":server 482 " + cli->get_nick() + " " + channel + " :You're not channel operator\r\n";
+		sendMsg(cli->getFd(), err.c_str(), err.size());
+		return ;
 	}
 	// coletar args
 	std::vector<std::string> args;
 	for (std::string tmp; iss >> tmp; ) args.push_back(tmp);
 
 	if (modes[0] != '+' && modes[0] != '-') {
-		std::ostringstream err;
-		err << ":server 472 " << cli->get_nick() << " " << modes
-		    << " :is unknown mode char to me\r\n";
-		sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+		std::string err = ":server 472 " + cli->get_nick() + " " + modes + " :is unknown mode char to me\r\n";
+		sendMsg(cli->getFd(), err.c_str(), err.size());
 		return;
 	}
 	char sign = 0;
@@ -466,10 +458,8 @@ void Server::cmdMODE(Client *cli, std::string line) {
 		if (c == '+' || c == '-') { sign = c; continue; } // pula o sign
 
 		if (sign != '+' && sign != '-') {
-			std::ostringstream err;
-			err << ":server 472 " << cli->get_nick() << " " << c
-			    << " :is unknown mode char to me\r\n";
-			sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+			std::string err = ":server 472 " + cli->get_nick() + " " + c + " :is unknown mode char to me\r\n";
+			sendMsg(cli->getFd(), err.c_str(), err.size());
 			return;
 		}
 
@@ -499,9 +489,8 @@ void Server::cmdMODE(Client *cli, std::string line) {
 				break;
 
 			default: {
-				std::ostringstream err;
-				err << ":server 472 " << cli->get_nick() << " " << c << " :is unknown mode char to me\r\n";
-				sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+				std::string err = ":server 472 " + cli->get_nick() + " " + c + " :is unknown mode char to me\r\n";
+				sendMsg(cli->getFd(), err.c_str(), err.size());
 				return;
 			}
 		}
