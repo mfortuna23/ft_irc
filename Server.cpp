@@ -147,7 +147,7 @@ void Server::handleCommand(Client *cli, std::string line){
 	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO", "WHOIS"};
 	void (Server::*fCmds[17])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
 		&Server::cmdCAP, &Server::cmdPING, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
-		&Server::voidCmd, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
+		&Server::cmdKICK, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
 	for (size_t i = 0; i < 17; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
@@ -155,8 +155,8 @@ void Server::handleCommand(Client *cli, std::string line){
 			return ;
 		}
 	}
-	std::string response = ":server 421 :Unknown command\r\n";
-	sendMsg(a->getFd(), response.c_str(), response.size());
+	std::string response = ":server 421" + cli->get_nick() + " " + line + " :Unknown command\r\n";
+	sendMsg(cli->getFd(), response.c_str(), response.size());
 }
 
 
@@ -232,6 +232,8 @@ void Server::checkRegistration(Client *cli)
 	// 001 RPL_WELCOME
 	std::string msg = ":server 001 " + cli->get_nick() + " :Welcome to the IRC server\r\n";
 	sendMsg(cli->getFd(), msg.c_str(), msg.size());
+	std::string msg2 = "You're now known as " + cli->get_nick() + "\r\n";
+	sendMsg(cli->getFd(), msg2.c_str(), msg2.size());
 }
 
 Client* Server::getClientByNick(const std::string& nick) {
