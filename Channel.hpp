@@ -31,7 +31,7 @@ class Channel {
 		std::string getPwd(void) const {return passW;};
 		void		setName(std::string other) {name = other;};
 		std::map<int, Client *> getClients(void) const {return myClients;};
-		std::string getTopic(void) const {return topic;};		std::map<int, Client *> getClients(void) const {return myClients;};
+		std::string getTopic(void) const {return topic;};
 		void		setTopic(std::string other) {topic = other;};
 		Channel 	&operator=(const Channel &other);
 		void		addClient(Client *other);
