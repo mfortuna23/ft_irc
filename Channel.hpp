@@ -18,6 +18,7 @@ class Channel {
 		std::vector <Client *> operators;
 		bool inviteOnly;            // +i
 		bool topicRestrict;         // +t
+		std::vector<std::string> invited; // vetor de strings com os nicks de quem foi invited pro canal.
 	public :
 		Channel();
 		Channel(std::string other);
@@ -57,6 +58,11 @@ class Channel {
 		// operators have @ infront of their nicks
 		void sendNamesTo(Client* requester) const;
 		void sendNamesToAll() const;
+
+		// invite only channels
+		bool		isInvited(const std::string& nick) const;
+		void		addInvite(const std::string& nick);
+		void		removeInvite(const std::string& nick);
 
 		~Channel(){};
 } ;

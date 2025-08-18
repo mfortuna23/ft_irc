@@ -573,3 +573,64 @@ void Server::cmdKICK(Client *cli, std::string line) {
         }
     }
 }
+
+void Server::cmdINVITE(Client *cli, std::string line) {
+    if (!cli->get_is_registered())
+        return sendErrorRegist(cli);
+
+    std::istringstream iss(line);
+    std::string cmd, nick, chan;
+    iss >> cmd >> nick >> chan;
+
+    if (nick.empty() || chan.empty())
+        return ERR_NEEDMOREPARAMS(cli, "INVITE");
+
+    if (!checkChannelName(chan))
+        return ERR_BADCHANMASK(cli, chan);
+
+    Channel *c = getChannelByName(chan);
+    if (!c)
+        return ERR_NOSUCHCHANNEL(cli, chan);
+
+    // precisa estar no canal para convidar
+    if (!c->isMember(cli)) {
+        std::string err = ":server 442 " + cli->get_nick() + " " + chan + " :You're not on that channel\r\n";
+        sendMsg(cli->getFd(), err.c_str(), err.size());
+        return;
+    }
+
+    // apenas operadores podem convidar
+    if (!c->isOperator(cli)) {
+        std::string err = ":server 482 " + cli->get_nick() + " " + chan + " :You're not channel operator\r\n";
+        sendMsg(cli->getFd(), err.c_str(), err.size());
+        return;
+    }
+
+    Client *target = getClientByNick(nick);
+    if (!target) {
+        std::string err = ":server 401 " + cli->get_nick() + " " + nick + " :No such nick/channel\r\n";
+        sendMsg(cli->getFd(), err.c_str(), err.size());
+        return;
+    }
+
+    if (c->isMember(target)) {
+        std::string err = ":server 443 " + cli->get_nick() + " " + nick + " " + c->getName() + " :is already on channel\r\n";
+        sendMsg(cli->getFd(), err.c_str(), err.size());
+        return;
+    }
+
+    // registra o convite (assim o convidado nao fica preso na condicao +i na hora do JOIN)
+    c->addInvite(nick);
+
+    // 341 RPL_INVITING (para quem convidou)
+    {
+        std::string rpl = ":server 341 " + cli->get_nick() + " " + nick + " " + c->getName() + "\r\n";
+        sendMsg(cli->getFd(), rpl.c_str(), rpl.size());
+    }
+
+    // notifica o convidado com prefixo do convidante
+    {
+        std::string out = startMsg(cli) + " INVITE " + nick + " :" + c->getName() + "\r\n";
+        sendMsg(target->getFd(), out.c_str(), out.size());
+    }
+}
