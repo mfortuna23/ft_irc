@@ -87,20 +87,16 @@ void Channel::addClient(Client *other){
 	}
 
 	// invite-only
-	if (inviteOnly) {
-		std::ostringstream e;
-		e << ":server 473 " << other->get_nick() << " " << name
-		  << " :Cannot join channel (+i)\r\n"; // ERR_INVITEONLYCHAN
-		sendMsg(other->getFd(), e.str().c_str(), e.str().size());
+	if (inviteOnly && !isInvited(other->get_nick())) {
+		std::string e = ":server 473 " + other->get_nick() + " " + name + " :Cannot join channel (+i)\r\n"; // ERR_INVITEONLYCHAN
+		sendMsg(other->getFd(), e.c_str(), e.size());
 		return;
 	}
 
 	// key exigida
 	if (!passW.empty()) {
-		std::ostringstream e;
-		e << ":server 475 " << other->get_nick() << " " << name
-		  << " :Cannot join channel (+k)\r\n"; // ERR_BADCHANNELKEY
-		sendMsg(other->getFd(), e.str().c_str(), e.str().size());
+		std::string e = ":server 475 " + other->get_nick() + " " + name + " :Cannot join channel (+k)\r\n"; // ERR_BADCHANNELKEY
+		sendMsg(other->getFd(), e.c_str(), e.size());
 		return;
 	}
 
@@ -117,6 +113,8 @@ void Channel::addClient(Client *other){
 	other->newChannel(this);
 	++nClients;
 
+	if (isInvited(other->get_nick()))
+    	removeInvite(other->get_nick());
 	std::ostringstream j;
 	j << ":" << other->get_nick() << "!~" << other->get_user() << "@" << other->getIp()
 	  << " JOIN :" << name << "\r\n";
@@ -125,36 +123,28 @@ void Channel::addClient(Client *other){
 }
 
 void Channel::addClient(Client *other, std::string pwd){
-	std::ostringstream msg;
 
 	if (myClients.find(other->getFd()) != myClients.end()) {
-		msg << ":server 443 " << other->get_nick() << " " << name
-		    << " :is already on channel\r\n";
-		sendMsg(other->getFd(), msg.str().c_str(), msg.str().size());
+		std::string msg = ":server 443 " + other->get_nick() + " " + name + " :is already on channel\r\n";
+		sendMsg(other->getFd(), msg.c_str(), msg.size());
 		return;
 	}
 	// invite-only
-	if (inviteOnly) {
-		std::ostringstream e;
-		e << ":server 473 " << other->get_nick() << " " << name
-		  << " :Cannot join channel (+i)\r\n";
-		sendMsg(other->getFd(), e.str().c_str(), e.str().size());
+	if (inviteOnly && !isInvited(other->get_nick())) {
+		std::string e = ":server 473 " + other->get_nick() + " " + name + " :Cannot join channel (+i)\r\n";
+		sendMsg(other->getFd(), e.c_str(), e.size());
 		return;
 	}
 	// key check
 	if (!passW.empty() && passW != pwd) {
-		std::ostringstream e;
-		e << ":server 475 " << other->get_nick() << " " << name
-		  << " :Cannot join channel (+k)\r\n";
-		sendMsg(other->getFd(), e.str().c_str(), e.str().size());
+		std::string e = ":server 475 " + other->get_nick() + " " + name + " :Cannot join channel (+k)\r\n";
+		sendMsg(other->getFd(), e.c_str(), e.size());
 		return;
 	}
 	// limite
 	if (limit > 0 && (size_t)nClients >= limit) {
-		std::ostringstream e;
-		e << ":server 471 " << other->get_nick() << " " << name
-		  << " :Channel is full\r\n";
-		sendMsg(other->getFd(), e.str().c_str(), e.str().size());
+		std::string e = ":server 471 " + other->get_nick() + " " + name + " :Channel is full\r\n";
+		sendMsg(other->getFd(), e.c_str(), e.size());
 		return;
 	}
 
@@ -162,10 +152,10 @@ void Channel::addClient(Client *other, std::string pwd){
 	other->newChannel(this);
 	++nClients;
 
-	std::ostringstream j;
-	j << ":" << other->get_nick() << "!~" << other->get_user() << "@" << other->getIp()
-	  << " JOIN :" << name << "\r\n";
-	sendMsgChannel(j.str());
+	if (isInvited(other->get_nick())) // se foi add por convite, removemos o convite pq ja foi usado
+    	removeInvite(other->get_nick());
+	std::string j = ":" + other->get_nick() + "!~" + other->get_user() + "@" + other->getIp() + " JOIN :" + name + "\r\n";
+	sendMsgChannel(j);
 	sendNamesTo(other);
 }
 
@@ -418,4 +408,26 @@ void Channel::sendNamesToAll() const {
          it != myClients.end(); ++it) {
         if (it->second) sendNamesTo(it->second);
     }
+}
+
+bool Channel::isInvited(const std::string& nick) const {
+	for (size_t i = 0; i < invited.size(); ++i)
+		if (invited[i] == nick)
+			return true;
+	return false;
+}
+
+void Channel::addInvite(const std::string& nick) {
+	if (!isInvited(nick))
+		invited.push_back(nick);
+}
+
+void Channel::removeInvite(const std::string& nick) {
+	for (size_t i = 0; i < invited.size(); ++i)
+	{
+		if (invited[i] == nick) {
+			invited.erase(invited.begin() + i);
+			return;
+		}
+	}
 }
