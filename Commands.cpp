@@ -69,11 +69,6 @@ void Server::cmdNICK(Client *cli, std::string line) {
 		sendMsg(cli->getFd(), msg.c_str(), msg.length());
 	}
 	cli->set_nickname(nick);
-
-	//std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
-	//sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	// if (cli->get_regist_steps() == 2)
-	// 	cli->confirm_regist_step(this);
 	tryFinishRegistration(cli);
 }
 
@@ -96,9 +91,6 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	cli->set_username(user);
 	std::string msg = "Your username now is " + cli->get_user() + "\r\n";
 	sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	
-	// if (cli->get_regist_steps() == 1)
-	// 	cli->confirm_regist_step(this);
 	tryFinishRegistration(cli);
 }
 
@@ -148,7 +140,12 @@ void	Server::cmdJOIN(Client *cli, std::string line){
 				else
 					c->addClient(cli, allKeys[i++]);
 			}
-		} else
+		} else if (channel == "0"){
+			std::map<std::string, Channel*> tmp = cli->getChannels();
+			for (std::map<std::string, Channel*>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+				cmdPART(cli, "PART " + it->first + " :Left all channels");
+		}
+		else
 			ERR_BADCHANMASK(cli, channel);
 	}
 }
@@ -481,7 +478,7 @@ void Server::cmdMODE(Client *cli, std::string line) {
 				} else { // '-'
 					if (c == 'o') {
 						if (x >= args.size())
-							return ERR_NEEDMOREPARAMS(cli, "MODE");
+							return ERR_NEEDMOREPARAMS(cli, "MODE (-)");
 						tv->modeNWA(cli, c, args[x++]);
 					} else // -k / -l não usam arg
 						tv->modeNNA(cli, c);

@@ -105,8 +105,6 @@ void Server::recvNewData(int fd)
 	if (bytes <= 0) {
 		std::cout << "Client disconnected: fd " << fd << std::endl;
 		cmdQUIT(cli, "quit");
-		//close(fd); // eh melhor fechar o fd primeiro para torna-lo invalido imediatamente.
-		//clearClients(fd); // apesar de fechado o fd continua com o mesmo numero, so nao eh mais valido no kernel
 		return;
 	}
 	cli->get_buffer().append(tmp_buffer, bytes);
@@ -147,7 +145,8 @@ void Server::handleCommand(Client *cli, std::string line){
 	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO", "WHOIS"};
 	void (Server::*fCmds[17])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
 		&Server::cmdCAP, &Server::cmdPING, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
-		&Server::cmdKICK, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, &Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
+		&Server::cmdKICK, &Server::voidCmd, &Server::voidCmd, &Server::cmdMODE, &Server::cmdPRIVMSG, 
+		&Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
 	for (size_t i = 0; i < 17; i++){
 		if (isThisCmd(line, cmds[i])){
 			std::cout << "ive recived " << cmds[i] << std::endl;
@@ -155,7 +154,7 @@ void Server::handleCommand(Client *cli, std::string line){
 			return ;
 		}
 	}
-	std::string response = ":server 421" + cli->get_nick() + " " + line + " :Unknown command\r\n";
+	std::string response = ":server 421 " + cli->get_nick() + (line.empty() ? "" : line) + " :Unknown command\r\n";
 	sendMsg(cli->getFd(), response.c_str(), response.size());
 }
 
