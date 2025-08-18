@@ -19,6 +19,7 @@ class Channel {
 		bool inviteOnly;            // +i
 		bool topicRestrict;         // +t
 		std::vector<std::string> invited; // vetor de strings com os nicks de quem foi invited pro canal.
+		std::string topic;
 	public :
 		Channel();
 		Channel(std::string other);
@@ -30,6 +31,8 @@ class Channel {
 		std::string getPwd(void) const {return passW;};
 		void		setName(std::string other) {name = other;};
 		std::map<int, Client *> getClients(void) const {return myClients;};
+		std::string getTopic(void) const {return topic;};		std::map<int, Client *> getClients(void) const {return myClients;};
+		void		setTopic(std::string other) {topic = other;};
 		Channel 	&operator=(const Channel &other);
 		void		addClient(Client *other);
 		void		addClient(Client *other, std::string pwd);

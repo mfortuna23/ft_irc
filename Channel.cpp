@@ -14,6 +14,7 @@ Channel::Channel(){
 	nClients = 0;
 	inviteOnly = false;
 	topicRestrict = false;
+	topic = "";
 }
 
 Channel::Channel(std::string other){
@@ -25,6 +26,8 @@ Channel::Channel(std::string other){
 	limit = 0;
 	inviteOnly = false;
 	topicRestrict = false;
+	topic = "";
+
 }
 
 Channel::Channel(std::string oName, Client *cli){
@@ -36,6 +39,7 @@ Channel::Channel(std::string oName, Client *cli){
 	limit = 0;
 	inviteOnly = false;
 	topicRestrict = false;
+	topic = "";
 
 	cli->newChannel(this);
 	myClients.insert(std::make_pair(cli->getFd(), cli));
@@ -431,3 +435,4 @@ void Channel::removeInvite(const std::string& nick) {
 		}
 	}
 }
+
