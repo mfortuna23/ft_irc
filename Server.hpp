@@ -56,6 +56,7 @@ class Server {
 		void cmdWHOIS(Client *cli, std::string line);
 		void cmdKICK(Client *cli, std::string line);
 		void cmdINVITE(Client *cli, std::string line);
+		void cmdTOPIC(Client *cli, std::string line);
 		//channel cmds
 		Channel* getChannelByName(std::string name);
 		void cmdJOIN(Client *cli, std::string line);
