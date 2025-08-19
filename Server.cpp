@@ -215,11 +215,8 @@ void Server::voidCmd(Client *cli, std::string line){(void)cli; (void)line;}
 
 void Server::tryFinishRegistration(Client* cli) {
     if (!cli) return;
-    // PASS precisa ter sido aceito antes: no teu contador isso significa steps <= 2
-    if (!cli->get_is_registered()
-        && cli->get_regist_steps() <= 2
-        && !cli->get_nick().empty()
-        && !cli->get_user().empty())
+    // PASS precisa ter sido aceito antes: no contador isso significa steps <= 2
+    if (!cli->get_is_registered() && cli->get_regist_steps() <= 2 && !cli->get_nick().empty() && !cli->get_user().empty())
     {
         cli->set_registration(true);     // marca como registrado
         checkRegistration(cli);
