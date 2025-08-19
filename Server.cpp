@@ -141,14 +141,16 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *cli, std::string line){
-	std::string cmds[17] = {"PASS", "NICK", "USER", "CAP", "PING", "PONG", "QUIT", "JOIN", "KICK",
+	std::string cmds[17] = {"PASS", "NICK", "USER", "CAP", "QUIT", "PONG", "PING", "JOIN", "KICK",
 	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO", "WHOIS"};
 	void (Server::*fCmds[17])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
-		&Server::cmdCAP, &Server::cmdPING, &Server::voidCmd, &Server::cmdQUIT, &Server::cmdJOIN, 
+		&Server::cmdCAP, &Server::cmdQUIT, &Server::voidCmd, &Server::cmdPING, &Server::cmdJOIN, 
 		&Server::cmdKICK, &Server::cmdINVITE, &Server::cmdTOPIC, &Server::cmdMODE, &Server::cmdPRIVMSG, 
 		&Server::cmdNOTICE, &Server::cmdPART, &Server::voidCmd, &Server::cmdWHOIS};
 	for (size_t i = 0; i < 17; i++){
 		if (isThisCmd(line, cmds[i])){
+			if (i > 5 && !cli->get_is_registered())
+				return ERR_NOTREGISTERED(cli); //cliente so pode user pass, nick, user, cap ou quit antes do registo
 			std::cout << "ive recived " << cmds[i] << std::endl;
 			(this->*fCmds[i])(cli, line);
 			return ;
@@ -238,13 +240,6 @@ Client* Server::getClientByNick(const std::string& nick) {
 			return clients[i];
 	}
 	return NULL;
-}
-
-void Server::sendErrorRegist(Client *cli){
-	std::ostringstream err;
-	err << ":server 451 " << (cli->get_nick().empty() ? "*" : cli->get_nick()) << " :You have not registered\r\n";
-	sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
-	return;
 }
 
 Server::~Server(){

@@ -65,7 +65,6 @@ class Server {
 		void clearClients(int fd);
 		// helper
 		void tryFinishRegistration(Client* cli);
-		void sendErrorRegist(Client *cli);
 
 		~Server();
 } ;
