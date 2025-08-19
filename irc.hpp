@@ -50,5 +50,8 @@ bool	checkChannelName(std::string name);
 void	ERR_BADCHANMASK(Client *cli, std::string channel);
 void	ERR_NOSUCHCHANNEL(Client *cli, std::string channel);
 void	ERR_NEEDMOREPARAMS(Client *cli, std::string cmd);
+void	ERR_NOTONCHANNEL(Client *cli, std::string chan);
+void	ERR_CHANOPRIVSNEEDED(Client *cli, std::string chan);
+
 
 #endif

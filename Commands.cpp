@@ -69,11 +69,6 @@ void Server::cmdNICK(Client *cli, std::string line) {
 		sendMsg(cli->getFd(), msg.c_str(), msg.length());
 	}
 	cli->set_nickname(nick);
-
-	//std::string msg = "You're now known as " + cli->get_nick() + "\r\n";
-	//sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	// if (cli->get_regist_steps() == 2)
-	// 	cli->confirm_regist_step(this);
 	tryFinishRegistration(cli);
 }
 
@@ -96,9 +91,6 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	cli->set_username(user);
 	std::string msg = "Your username now is " + cli->get_user() + "\r\n";
 	sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	
-	// if (cli->get_regist_steps() == 1)
-	// 	cli->confirm_regist_step(this);
 	tryFinishRegistration(cli);
 }
 
@@ -148,7 +140,12 @@ void	Server::cmdJOIN(Client *cli, std::string line){
 				else
 					c->addClient(cli, allKeys[i++]);
 			}
-		} else
+		} else if (channel == "0"){
+			std::map<std::string, Channel*> tmp = cli->getChannels();
+			for (std::map<std::string, Channel*>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+				cmdPART(cli, "PART " + it->first + " :Left all channels");
+		}
+		else
 			ERR_BADCHANMASK(cli, channel);
 	}
 }
@@ -349,9 +346,7 @@ void Server::cmdPART(Client *cli, std::string line){
 				continue;
 			}
 			if (!tv->isMember(cli)) { // user não está no canal
-				msg.str(""); msg.clear();
-				msg << ":server 442 " << cli->get_nick() << " " << channel << " :You're not on that channel\r\n";
-				sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
+				ERR_NOTONCHANNEL(cli, channel);
 				continue;
 			}
 			if (tv && tv->rmClient(cli)){
@@ -406,11 +401,8 @@ void Server::cmdMODE(Client *cli, std::string line) {
 		return ERR_NOSUCHCHANNEL(cli, channel);
 
 	// Se o usuário não está no canal: 442
-	if (!tv->isMember(cli)) {
-		std::string err = ":server 442 " + cli->get_nick() + " " + channel + " :You're not on that channel\r\n";
-		sendMsg(cli->getFd(), err.c_str(), err.size());
-		return;
-	}
+	if (!tv->isMember(cli))
+		return ERR_NOTONCHANNEL(cli, channel);
 	// ler 'modes' (se existir)
 	iss >> modes;
 	// Caso "consulta": MODE #canal
@@ -481,7 +473,7 @@ void Server::cmdMODE(Client *cli, std::string line) {
 				} else { // '-'
 					if (c == 'o') {
 						if (x >= args.size())
-							return ERR_NEEDMOREPARAMS(cli, "MODE");
+							return ERR_NEEDMOREPARAMS(cli, "MODE (-)");
 						tv->modeNWA(cli, c, args[x++]);
 					} else // -k / -l não usam arg
 						tv->modeNNA(cli, c);
@@ -534,11 +526,8 @@ void Server::cmdKICK(Client *cli, std::string line) {
 		if (!ch)
 			return ERR_NOSUCHCHANNEL(cli, chan);
 	
-	if (!ch->isMember(cli)) {
-		std::string err = ":server 442 " + cli->get_nick() + " " + chan + " :You're not on that channel\r\n";
-		sendMsg(cli->getFd(), err.c_str(), err.size());
-		return;
-	}
+	if (!ch->isMember(cli))
+		return ERR_NOTONCHANNEL(cli, chan);
 
 	if (!ch->isOperator(cli)) {
         std::string err = ":server 482 " + cli->get_nick() + " " + chan + " :You're not channel operator\r\n";
@@ -636,4 +625,40 @@ void Server::cmdINVITE(Client *cli, std::string line) {
         std::string out = startMsg(cli) + " INVITE " + nick + " :" + c->getName() + "\r\n";
         sendMsg(target->getFd(), out.c_str(), out.size());
     }
+}
+
+
+void Server::cmdTOPIC(Client *cli, std::string line){
+	if (!cli->get_is_registered())
+		sendErrorRegist(cli);
+	std::istringstream iss(line);
+	std::string cmd, chan, topic;
+	std::stringstream msg;
+	iss >> cmd >> chan;
+	if (chan.empty())
+        return ERR_NEEDMOREPARAMS(cli, "TOPIC");
+	Channel *tv = getChannelByName(chan);
+	if (!tv)
+		return ERR_NOSUCHCHANNEL(cli, chan);
+	if (!tv->getMemberByNick(cli->get_nick()))
+		return ERR_NOTONCHANNEL(cli, chan);
+	std::getline(iss, topic);
+	topic.erase(0, topic.find_first_not_of(" \t\n\r")); //TOPIC sozinho devolve o topico
+	if (topic.empty()){
+		if (tv->getTopic().empty()){
+			msg << ":server 331 " << cli->get_nick() << " " << chan << " :No topic is set.\r\n";
+			sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
+			return ;
+		}
+		msg << ":server 332 " << cli->get_nick() << " " << chan << " :" << tv->getTopic() <<"\r\n";
+		sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
+		return ;
+	}
+	topic.erase(0, topic.find_first_not_of(" \t\n\r:")); // : sem topico elimina o topico existente
+	if ((tv->getTopicRestrict() && tv->isOperator(cli)) || !tv->getTopicRestrict()){
+		msg << startMsg(cli) << " TOPIC :" << topic << "\r\n";
+		tv->sendMsgChannel(msg.str());
+		return tv->setTopic(topic);
+	}
+	return ERR_CHANOPRIVSNEEDED(cli, "TOPIC");
 }
