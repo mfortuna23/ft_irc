@@ -47,10 +47,13 @@ bool	checkNbr(std::string nbr);
 bool	checkChannelName(std::string name);
 
 /* ##### Error ##### */
-void	ERR_BADCHANMASK(Client *cli, std::string channel);
 void	ERR_NOSUCHCHANNEL(Client *cli, std::string channel);
-void	ERR_NEEDMOREPARAMS(Client *cli, std::string cmd);
+void	ERR_NORECIPIENT(Client *cli, std::string cmd);
+void	ERR_NOTEXTTOSEND(Client *cli, std::string cmd);
 void	ERR_NOTONCHANNEL(Client *cli, std::string chan);
+void	ERR_NOTREGISTERED(Client *cli);
+void	ERR_NEEDMOREPARAMS(Client *cli, std::string cmd);
+void	ERR_BADCHANMASK(Client *cli, std::string channel);
 void	ERR_CHANOPRIVSNEEDED(Client *cli, std::string chan);
 
 

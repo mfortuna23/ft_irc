@@ -109,9 +109,6 @@ Channel* Server::getChannelByName(std::string name)
 
 void	Server::cmdJOIN(Client *cli, std::string line){
 	std::stringstream msg;
-	if (!cli->get_is_registered())
-		return sendErrorRegist(cli);
-
 	std::istringstream iss(line);
 	std::string cmd, channel, keys;
 	iss >> cmd >> channel;
@@ -198,30 +195,21 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 
 	iss >> cmd >> target;
 
-	if (!cli->get_is_registered())
-		return sendErrorRegist(cli);
-
-	if (target.empty()) {
-		sendMsg(cli->getFd(), "ERROR :No recipient given (PRIVMSG)\r\n", 36);
-		return;
-	}
+	if (target.empty())
+		return ERR_NORECIPIENT(cli, "PRIVMSG");
 
 	size_t pos = line.find(" :");
 	if (pos != std::string::npos)
 		message = line.substr(pos + 2); // ignora o " :"
-	else {
-		sendMsg(cli->getFd(), "ERROR :No text to send\r\n", 25);
-		return;
-	}
+	else
+		return ERR_NOTEXTTOSEND(cli, "PRIVMSG");
 
 	if (target[0] == '#' || target[0] == '&') {
 		if (!checkChannelName(target))
 			return ERR_BADCHANMASK(cli, target);
 		Channel* chan = getChannelByName(target);
-		if (!chan) {
-			sendMsg(cli->getFd(), "ERROR :No such channel\r\n", 26);
-			return;
-		}
+		if (!chan) 
+			return ERR_NOSUCHCHANNEL(cli, target);
 		std::map<int, Client*> clients = chan->getClients();
 		if (clients.count(cli->getFd()) == 0) // if the client isnt in the channel, he cant send the msg.
 		{
@@ -317,8 +305,6 @@ void Server::cmdPING(Client *cli, std::string line) {
 //leave channels
 void Server::cmdPART(Client *cli, std::string line){
 	std::stringstream msg;
-	if (!cli->get_is_registered())
-		return sendErrorRegist(cli);
 	std::istringstream iss(line);
 	std::string cmd, channel, leave;
 	iss >> cmd >> channel;
@@ -383,17 +369,12 @@ void Server::cmdPART(Client *cli, std::string line){
 }
 
 void Server::cmdMODE(Client *cli, std::string line) {
-	// 1) registration
-	if (!cli->get_is_registered())
-		return sendErrorRegist(cli);
-
-	// 2) parse
+	// 1) parse
 	std::istringstream iss(line);
 	std::string cmd, channel, modes;
 	iss >> cmd >> channel;
 	if (channel.empty())
 		return ERR_NEEDMOREPARAMS(cli, "MODE");
-
 	if (!checkChannelName(channel)){
 		if (channel == cli->get_nick()) // faltava manter esta condiçao para quando o irssi envia "mode nick +i"
 			return;
@@ -402,8 +383,7 @@ void Server::cmdMODE(Client *cli, std::string line) {
 	Channel *tv = getChannelByName(channel);
 	if (!tv)
 		return ERR_NOSUCHCHANNEL(cli, channel);
-
-	// Se o usuário não está no canal: 442
+	// Se o usuário não está no canal:
 	if (!tv->isMember(cli))
 		return ERR_NOTONCHANNEL(cli, channel);
 	// ler 'modes' (se existir)
@@ -432,11 +412,8 @@ void Server::cmdMODE(Client *cli, std::string line) {
     	return;
 	}
 	// a partir daqui: precisa ser operador
-	if (!tv->isOperator(cli)) {
-		std::string err = ":server 482 " + cli->get_nick() + " " + channel + " :You're not channel operator\r\n";
-		sendMsg(cli->getFd(), err.c_str(), err.size());
-		return ;
-	}
+	if (!tv->isOperator(cli))
+		return ERR_CHANOPRIVSNEEDED(cli, channel);
 	// coletar args
 	std::vector<std::string> args;
 	for (std::string tmp; iss >> tmp; ) args.push_back(tmp);
@@ -493,8 +470,6 @@ void Server::cmdMODE(Client *cli, std::string line) {
 }
 
 void Server::cmdWHOIS(Client *cli, std::string line) {
-    if (!cli->get_is_registered())
-		return sendErrorRegist(cli);
     std::istringstream iss(line);
     std::string cmd, target;
     iss >> cmd >> target;
@@ -506,8 +481,6 @@ void Server::cmdWHOIS(Client *cli, std::string line) {
 }
 
 void Server::cmdKICK(Client *cli, std::string line) {
-	if (!cli->get_is_registered())
-		sendErrorRegist(cli);
 	std::istringstream iss(line);
 	std::string cmd, chan, victim;
 	iss >> cmd >> chan >> victim;
@@ -526,17 +499,14 @@ void Server::cmdKICK(Client *cli, std::string line) {
 		reason = cli->get_nick(); // resposta padrao quando nao se tem uma reason;
 	
 	Channel *ch = getChannelByName(chan);
-		if (!ch)
-			return ERR_NOSUCHCHANNEL(cli, chan);
+	if (!ch)
+		return ERR_NOSUCHCHANNEL(cli, chan);
 	
 	if (!ch->isMember(cli))
 		return ERR_NOTONCHANNEL(cli, chan);
 
-	if (!ch->isOperator(cli)) {
-        std::string err = ":server 482 " + cli->get_nick() + " " + chan + " :You're not channel operator\r\n";
-        sendMsg(cli->getFd(), err.c_str(), err.size());
-        return;
-    }
+	if (!ch->isOperator(cli))
+		return ERR_CHANOPRIVSNEEDED(cli, chan);
 
 	Client *v = getClientByNick(victim);
     if (!v) {
@@ -570,9 +540,6 @@ void Server::cmdKICK(Client *cli, std::string line) {
 }
 
 void Server::cmdINVITE(Client *cli, std::string line) {
-    if (!cli->get_is_registered())
-        return sendErrorRegist(cli);
-
     std::istringstream iss(line);
     std::string cmd, nick, chan;
     iss >> cmd >> nick >> chan;
@@ -588,18 +555,12 @@ void Server::cmdINVITE(Client *cli, std::string line) {
         return ERR_NOSUCHCHANNEL(cli, chan);
 
     // precisa estar no canal para convidar
-    if (!c->isMember(cli)) {
-        std::string err = ":server 442 " + cli->get_nick() + " " + chan + " :You're not on that channel\r\n";
-        sendMsg(cli->getFd(), err.c_str(), err.size());
-        return;
-    }
+    if (!c->isMember(cli))
+		return ERR_NOTONCHANNEL(cli, chan);
 
     // apenas operadores podem convidar
-    if (!c->isOperator(cli)) {
-        std::string err = ":server 482 " + cli->get_nick() + " " + chan + " :You're not channel operator\r\n";
-        sendMsg(cli->getFd(), err.c_str(), err.size());
-        return;
-    }
+    if (!c->isOperator(cli))
+		return ERR_CHANOPRIVSNEEDED(cli, chan);
 
     Client *target = getClientByNick(nick);
     if (!target) {
@@ -632,8 +593,6 @@ void Server::cmdINVITE(Client *cli, std::string line) {
 
 
 void Server::cmdTOPIC(Client *cli, std::string line){
-	if (!cli->get_is_registered())
-		sendErrorRegist(cli);
 	std::istringstream iss(line);
 	std::string cmd, chan, topic;
 	std::stringstream msg;
@@ -647,7 +606,8 @@ void Server::cmdTOPIC(Client *cli, std::string line){
 		return ERR_NOTONCHANNEL(cli, chan);
 	std::getline(iss, topic);
 	topic.erase(0, topic.find_first_not_of(" \t\n\r")); //TOPIC sozinho devolve o topico
-	if (topic.empty()){
+	size_t pos = line.find(" :"); // procura pelo ':' senao existir consideramos empty.
+	if (topic.empty() || pos == std::string::npos){
 		if (tv->getTopic().empty()){
 			msg << ":server 331 " << cli->get_nick() << " " << chan << " :No topic is set.\r\n";
 			sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
