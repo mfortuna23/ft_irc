@@ -68,7 +68,8 @@ void Server::cmdNICK(Client *cli, std::string line) {
 		std::string msg = ":" + old_nick + " NICK :" + nick + "\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.length());
 	}
-	cli->set_nickname(nick);
+	if (cli->get_regist_steps() < 3)
+		cli->set_nickname(nick);
 	tryFinishRegistration(cli);
 }
 
@@ -88,9 +89,11 @@ void Server::cmdUSER(Client *cli, std::string line) {
 		sendMsg(cli->getFd(), ":server 461 :No username given\r\n", 33);
 		return;
 	}
-	cli->set_username(user);
-	std::string msg = "Your username now is " + cli->get_user() + "\r\n";
-	sendMsg(cli->getFd(), msg.c_str(), msg.size());
+	if (cli->get_regist_steps() < 3) {
+		cli->set_username(user);
+		std::string msg = "Your username now is " + cli->get_user() + "\r\n";
+		sendMsg(cli->getFd(), msg.c_str(), msg.size());
+	}
 	tryFinishRegistration(cli);
 }
 
