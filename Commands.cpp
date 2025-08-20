@@ -619,7 +619,8 @@ void Server::cmdTOPIC(Client *cli, std::string line){
 	}
 	topic.erase(0, topic.find_first_not_of(" \t\n\r:")); // : sem topico elimina o topico existente
 	if ((tv->getTopicRestrict() && tv->isOperator(cli)) || !tv->getTopicRestrict()){
-		msg << startMsg(cli) << " " << chan << " TOPIC :" << topic << "\r\n";
+		//msg << startMsg(cli) << " " << chan << " TOPIC :" << topic << "\r\n";
+		msg << startMsg(cli) << " TOPIC " << tv->getName() << " :" << topic << "\r\n";
 		tv->sendMsgChannel(msg.str());
 		return tv->setTopic(topic);
 	}

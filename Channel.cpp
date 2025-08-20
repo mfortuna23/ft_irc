@@ -123,6 +123,7 @@ void Channel::addClient(Client *other){
 	j << ":" << other->get_nick() << "!~" << other->get_user() << "@" << other->getIp()
 	  << " JOIN :" << name << "\r\n";
 	sendMsgChannel(j.str());
+	sendTopicTo(other);
 	sendNamesTo(other);
 }
 
@@ -160,6 +161,7 @@ void Channel::addClient(Client *other, std::string pwd){
     	removeInvite(other->get_nick());
 	std::string j = ":" + other->get_nick() + "!~" + other->get_user() + "@" + other->getIp() + " JOIN :" + name + "\r\n";
 	sendMsgChannel(j);
+	sendTopicTo(other);
 	sendNamesTo(other);
 }
 
@@ -436,3 +438,12 @@ void Channel::removeInvite(const std::string& nick) {
 	}
 }
 
+void Channel::sendTopicTo(Client* requester) const {
+	if (!requester)
+		return;
+
+	if (topic.empty())
+		return;
+	std::string r = ":server 332 " + requester->get_nick() + " " + name + " :" + topic + "\r\n";
+	sendMsg(requester->getFd(), r.c_str(), r.size());
+}
