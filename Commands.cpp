@@ -624,5 +624,5 @@ void Server::cmdTOPIC(Client *cli, std::string line){
 		tv->sendMsgChannel(msg.str());
 		return tv->setTopic(topic);
 	}
-	return ERR_CHANOPRIVSNEEDED(cli, "TOPIC");
+	return ERR_CHANOPRIVSNEEDED(cli, chan);
 }
