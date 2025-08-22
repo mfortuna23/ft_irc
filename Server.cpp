@@ -4,8 +4,6 @@ bool Server::signal = false;
 bool Server::running = true;
 Server::Server() : ServSockFd (-1) {
 	cleaned = false;
-	pass = false;
-	canReg = true;
 }
 
 void Server::serverInit(int newPort, std::string newPassword){
