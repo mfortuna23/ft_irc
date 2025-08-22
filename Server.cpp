@@ -4,12 +4,14 @@ bool Server::signal = false;
 bool Server::running = true;
 Server::Server() : ServSockFd (-1) {
 	cleaned = false;
+	pass = false;
+	canReg = true;
 }
 
 void Server::serverInit(int newPort, std::string newPassword){
-	if (newPort > 65535) // TODO parsing
+	if (newPort < 6665 || newPort > 6669) //so aceitamos ports recomendados
 		throw (std::runtime_error("invalid port"));
-	if (newPassword.empty()) // TODO parsing
+	if (newPassword.empty())
 		throw (std::runtime_error("invalid password"));
 	port = newPort;
 	password = newPassword;
@@ -123,7 +125,7 @@ void Server::recvNewData(int fd)
 
 			std::string line = cli->get_buffer().substr(0, pos); // cria uma substring da posicao 0 até \r\n (sem inclui-lo)
 			cli->get_buffer().erase(0, pos + 2); // remove os caracteres da string de 0 ate o \r\n (incluidos)
-			std::cout << "[fd " << fd << "] " << line << std::endl; //TODO apenas para debug
+			std::cout << "[fd " << fd << "] " << line << std::endl; // apenas para debug
 			handleCommand(cli, line);
 			cli = getClientByFd(fd);
 			if (!cli) // verfica se o cliente ja foi desconectado
@@ -156,23 +158,14 @@ void Server::handleCommand(Client *cli, std::string line){
 			return ;
 		}
 	}
+	if (line.empty()) // nao precisamos de dar erro em empty lines
+		return ;
 	std::string response = ":server 421 " + cli->get_nick() + (line.empty() ? "" : line) + " :Unknown command\r\n";
 	sendMsg(cli->getFd(), response.c_str(), response.size());
 }
 
-
-//
-// void Server::sendMsgAll(int fd_client, const char *buffer, size_t len){
-// 	for (size_t i = 0; i < fds.size(); i++){
-// 		if (fds[i].fd != fd_client )
-// 			//if (getClientByFd(fd_client)->get_is_registered()) //TODO REGISTERED client
-// 				sendMsg(fds[i].fd, buffer, len);
-// 	}
-// }
-
 void Server::signalHandler (int signum){
-	(void)signum; // any signal ...
-	std::cout << std::endl << RED << "Signal recived!" << RESET << std::endl;
+	(void)signum;
 	Server::signal = true;
 	running = false;
 }
@@ -201,7 +194,7 @@ void Server::clearClients(int fd){
 	}
 	for (size_t i = 0; i < clients.size(); i++){
 		if(clients[i]->getFd() == fd){
-			std::cout << RED << "[clearClients] Deletando fd " << fd << RESET << std::endl;
+			std::cout << RED << "[clearClients] Deleting fd " << fd << RESET << std::endl;
 			delete clients[i];
 			clients.erase(clients.begin() + i);
 			break ;
