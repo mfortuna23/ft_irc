@@ -67,6 +67,9 @@ class Channel {
 		void		addInvite(const std::string& nick);
 		void		removeInvite(const std::string& nick);
 
+		// topic
+		void        sendTopicTo(Client* requester) const;
+
 		~Channel(){};
 } ;
 
