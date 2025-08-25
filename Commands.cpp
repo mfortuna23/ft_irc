@@ -70,7 +70,7 @@ void Server::cmdNICK(Client *cli, std::string line) {
 	if (cli->get_regist_steps() < 3)
 		cli->set_nickname(nick);
 	else
-		return ERR_NOTREGISTERED(cli);
+		return ERR_PASSWDMISMATCH(cli);
 	tryFinishRegistration(cli);
 }
 
@@ -96,7 +96,7 @@ void Server::cmdUSER(Client *cli, std::string line) {
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 	}
 	else
-		return ERR_NOTREGISTERED(cli);
+		return ERR_PASSWDMISMATCH(cli);
 	tryFinishRegistration(cli);
 }
 
@@ -394,7 +394,7 @@ void Server::cmdMODE(Client *cli, std::string line) {
 	// Caso "consulta": MODE #canal
 	if (modes.empty()) {
 		std::string flags;
-		if (tv->getInviteOnly() || tv->getTopicRestrict() || tv->hasKey() || tv->getLimit()) //so entra o mais se corresponder a pelo menos uma condicao
+		// if (tv->getInviteOnly() || tv->getTopicRestrict() || tv->hasKey() || tv->getLimit()) //so entra o mais se corresponder a pelo menos uma condicao
 			flags = "+";
 		std::vector<std::string> args;
 		if (tv->getInviteOnly()) flags += "i";
@@ -561,8 +561,8 @@ void Server::cmdINVITE(Client *cli, std::string line) {
     if (!c->isMember(cli))
 		return ERR_NOTONCHANNEL(cli, chan);
 
-	// apenas operadores podem convidar se tiver flag +i
-    if ( c->getInviteOnly() && !c->isOperator(cli))
+	// apenas operadores podem convidar
+    if (!c->isOperator(cli))
 		return ERR_CHANOPRIVSNEEDED(cli, chan);
 
     Client *target = getClientByNick(nick);
