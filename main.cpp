@@ -17,6 +17,6 @@ int main (int argc, char **argv){
 		myServer.closeFds();
 		std::cerr << e.what() << std::endl;
 	}
-	std::cout << "the server is closed!" << std::endl;
+	std::cout << "\nThe server is closed!" << std::endl;
 	return (0);
 }
