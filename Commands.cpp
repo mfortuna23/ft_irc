@@ -70,7 +70,7 @@ void Server::cmdNICK(Client *cli, std::string line) {
 	if (cli->get_regist_steps() < 3)
 		cli->set_nickname(nick);
 	else
-		return ERR_PASSWDMISMATCH(cli);
+		return ERR_NOTREGISTERED(cli);
 	tryFinishRegistration(cli);
 }
 
@@ -85,18 +85,16 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	}
 	iss >> cmd >> user >> unused >> asterisk;
 	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
-	// como nao vamos nos aprofundar muito, nao precisamos salvar nada alem do user. //TODO mas nao podemos aceitar senao tiver todos os argumentos
-	if (user.empty()) {
-		sendMsg(cli->getFd(), ":server 461 :No username given\r\n", 33);
-		return;
-	}
+	// como nao vamos nos aprofundar muito, nao precisamos salvar nada alem do user. 
+	if (user.empty() || unused.empty() || unused != "0" || asterisk.empty() || asterisk != "*") 
+		return ERR_NEEDMOREPARAMS(cli, "USER");
 	if (cli->get_regist_steps() < 3) {
 		cli->set_username(user);
-		std::string msg = "Your username now is " + cli->get_user() + "\r\n"; //TODO essa mensagem so mostra se o resto tiver ok
+		std::string msg = "Your username now is " + cli->get_user() + "\r\n"; 
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 	}
 	else
-		return ERR_PASSWDMISMATCH(cli);
+		return ERR_NOTREGISTERED(cli);
 	tryFinishRegistration(cli);
 }
 
@@ -393,9 +391,7 @@ void Server::cmdMODE(Client *cli, std::string line) {
 	iss >> modes;
 	// Caso "consulta": MODE #canal
 	if (modes.empty()) {
-		std::string flags;
-		// if (tv->getInviteOnly() || tv->getTopicRestrict() || tv->hasKey() || tv->getLimit()) //so entra o mais se corresponder a pelo menos uma condicao
-			flags = "+";
+		std::string flags = "+"; //IRC de referencia mostra + mesmo que nao haja flags
 		std::vector<std::string> args;
 		if (tv->getInviteOnly()) flags += "i";
 		if (tv->getTopicRestrict()) flags += "t";
@@ -561,7 +557,6 @@ void Server::cmdINVITE(Client *cli, std::string line) {
     if (!c->isMember(cli))
 		return ERR_NOTONCHANNEL(cli, chan);
 
-	// apenas operadores podem convidar
     if (!c->isOperator(cli))
 		return ERR_CHANOPRIVSNEEDED(cli, chan);
 
