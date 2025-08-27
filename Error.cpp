@@ -41,3 +41,10 @@ void	ERR_CHANOPRIVSNEEDED(Client *cli, std::string chan){
 	msg << ":server 482 " << cli->get_nick() << " " << chan << " :You're not channel operator\r\n";
 	sendMsg(cli->getFd(), msg.str().c_str(), msg.str().size());
 }
+
+void	ERR_PASSWDMISMATCH(Client *cli){
+	std::ostringstream err;
+	err << ":server 464 " << (cli->get_nick().empty() ? "*" : cli->get_nick()) << " :Password mismatch\r\n";
+	sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+	return;
+}

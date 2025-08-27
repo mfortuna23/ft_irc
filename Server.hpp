@@ -19,6 +19,7 @@ class Server {
 		std::vector<Client*> clients; // quando Client era armazenado por valor e o vetor realocava, os ponteiros guardados nos channels passavam a apontar para lugares errados.
 		std::vector<struct pollfd> fds;
 		std::vector<Channel*> channels;
+		static Server* instance; // acesso global controlado
 		/*
 		Por que Client e Channel devem ser ponteiros?
 			Client:  estamos armazenando ponteiros para client (enderecos para os elementos do vetor) fora do vetor,
@@ -65,6 +66,11 @@ class Server {
 		void clearClients(int fd);
 		// helper
 		void tryFinishRegistration(Client* cli);
+		// ---- escrita assíncrona com único poll() ---- //
+		static Server* getInstance() { return instance; }
+		void enqueueSend(int fd, const char* buf, size_t len);
+		void enableWriteEvent(int fd);
+		void disableWriteEvent(int fd);
 
 		~Server();
 } ;

@@ -17,6 +17,9 @@ class Client {
 		std::string buffer;// acumula os dados recebidos até um "\r\n"
 		int			regist_3steps;// comeca com 3 (3 estapas: nick, user e pass) e reduz ate 0
 		std::map <std::string, Channel *> myChannels;
+		// saída não-bloqueante controlada pelo poll() principal //
+		std::string	outbox;		// bytes pendentes para enviar
+		bool		want_close;	// fechar assim que outbox esvaziar
 	public :
 		Client();
 		Client(int fd, const std::string &ip);
@@ -39,6 +42,10 @@ class Client {
 		std::map <std::string, Channel *> getChannels() { return myChannels; }
 		void newChannel(Channel *other);
 		void rmChannel(Channel *other);
+		// --- acesso ao TX buffer/flags --- //
+		std::string &get_outbox() { return outbox; }
+		bool get_want_close() const { return want_close; }
+		void set_want_close(bool v) { want_close = v; }
 } ;
 
 #endif

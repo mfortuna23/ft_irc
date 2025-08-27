@@ -1,7 +1,8 @@
 #include "Server.hpp"
 
-bool Server::signal = false;
-bool Server::running = true;
+bool	Server::signal = false;
+bool	Server::running = true;
+Server* Server::instance = NULL;
 Server::Server() : ServSockFd (-1) {
 	cleaned = false;
 }
@@ -16,17 +17,60 @@ void Server::serverInit(int newPort, std::string newPassword){
 	servSock();
 	std::cout << GREEN << "Server <" << ServSockFd << "> Connected" << RESET << std::endl;
 	std::cout << "Waiting to accept a connection ..." << std::endl;
+	// registra instância para sendMsg() enfileirar os dados que irao ser escritos, mantendo acesso a essa instacia Server.
+	Server::instance = this;
 	while (running){
 		if (poll(&fds.at(0), fds.size(), -1) < 0) {
 			if (errno == EINTR) break; 
 			throw (std::runtime_error("Poll() failed"));
 		}
-		for (size_t i = 0; i < fds.size(); i++){
+		for (size_t i = 0; i < fds.size(); i++)
+		{
+			if (fds[i].revents & (POLLHUP | POLLERR | POLLNVAL)) {
+				int fd = fds[i].fd;
+				close(fd);
+				clearClients(fd);
+				continue;
+			}
 			if (fds[i].revents & POLLIN){
 				if (fds[i].fd == ServSockFd)
 					acceptNewClient();
 				else
 					recvNewData(fds[i].fd); // comd recv
+			}
+			// escreveremos ao fazer flush do outbox quando POLLOUT ficar pronto
+			if (fds[i].revents & POLLOUT){
+				int fd = fds[i].fd;
+				Client* cli = getClientByFd(fd);
+				if (!cli) { 
+					disableWriteEvent(fd);
+					continue;
+				}
+				bool fatal = false;
+				while (cli && !cli->get_outbox().empty()){
+					ssize_t n = send(fd, cli->get_outbox().c_str(), cli->get_outbox().size(), 0);
+					if (n > 0) {
+						cli->get_outbox().erase(0, static_cast<size_t>(n));
+					} else {
+						if (errno == EAGAIN || errno == EWOULDBLOCK)
+							break; // tenta de novo na próxima iteração
+						// erro fatal -> encerra
+						std::cout << RED << "Send error on fd " << fd << RESET << std::endl;
+						cmdQUIT(cli, "quit");
+						fatal = true;
+						break;
+					}
+				}
+				if (fatal)
+					continue; // fds[] mudou, segue o loop externo
+				cli = getClientByFd(fd);
+				if (cli && cli->get_outbox().empty()){
+					disableWriteEvent(fd);
+					if (cli->get_want_close()){
+						close(fd);
+						clearClients(fd);
+					}
+				}
 			}
 		}
 	}
@@ -57,6 +101,35 @@ void Server::servSock(){
 	NewPoll.revents = 0;
 	fds.push_back(NewPoll);
 }
+
+// --- helpers de escrita controlada pelo poll() único ---
+void Server::enableWriteEvent(int fd) {
+		for (size_t i = 0; i < fds.size(); ++i){
+			if (fds[i].fd == fd){
+				fds[i].events |= POLLOUT;
+				return;
+			}
+		}
+}
+
+void Server::disableWriteEvent(int fd) {
+		for (size_t i = 0; i < fds.size(); ++i){
+			if (fds[i].fd == fd){
+				fds[i].events &= ~POLLOUT; // para de monitorar se o fd está pronto para escrita
+				return;
+			}
+		}
+}
+void Server::enqueueSend(int fd, const char* buf, size_t len) {
+		if (!buf || len == 0)
+			return;
+		Client* cli = getClientByFd(fd);
+		if (!cli)
+			return;
+		cli->get_outbox().append(buf, len);
+		enableWriteEvent(fd);
+}
+// ---- // ---- //
 
 void Server::acceptNewClient(){
 	struct sockaddr_in client_addr; // 
@@ -116,7 +189,7 @@ void Server::recvNewData(int fd)
 			if (pos > 510) { // a verificaçao deve ficar dentro do loop para estar sempre checando se a linha passou de 512 bytes ("\r\n" incluidos)
 				std::string err = "ERROR :Line too long\r\n";
 				sendMsg(fd, err.c_str(), err.size());
-				std::cout << RED << "Line too long from fd " << fd << ". YOU ARE NOT following IRC protocol. Disconnecting." << RESET << std::endl;
+				std::cout << RED << "Line too long from fd " << fd << ". NOT following IRC protocol. Disconnecting." << RESET << std::endl;
 				cmdQUIT(cli, "quit");
 				return;
 			}
@@ -172,28 +245,57 @@ void Server::closeFds(){
 	if (cleaned)
 		return;
 	for (size_t  i = 0; i < clients.size(); i++){
-		std::cout << RED << "Client <" << clients[i]->getFd() << "> Disconnected" << RESET << std::endl;
-		close(clients[i]->getFd());
-		delete clients[i];
+		if (clients[i]){
+			std::cout << RED << "Client <" << clients[i]->getFd() << "> Disconnected" << RESET << std::endl;
+			close(clients[i]->getFd());
+			delete clients[i];
+		}
 	}
-	if (ServSockFd == -1)
-		return ;
-	std::cout << RED << "Server <" << ServSockFd << "> Disconnected" << RESET << std::endl;
-	close(ServSockFd);
+	clients.clear();
+	fds.clear();
+	// fecha o socket do servidor se ainda aberto
+	if (ServSockFd != -1) {
+		std::cout << RED << "Server <" << ServSockFd << "> Disconnected" << RESET << std::endl;
+		close(ServSockFd);
+		ServSockFd = -1;
+	}
 	cleaned = true;
 }
 
 void Server::clearClients(int fd){
+	// tira do poll
 	for (size_t i = 0; i < fds.size(); i++){
 		if(fds.at(i).fd == fd){
 			fds.erase(fds.begin() + i);
 			break ;
 		}
 	}
+	// acha o Client*
 	for (size_t i = 0; i < clients.size(); i++){
 		if(clients[i]->getFd() == fd){
+			Client* c = clients[i];
+
+			//  retirar de todos os canais
+			std::map<std::string, Channel *> chans = c->getChannels();
+			for (std::map<std::string, Channel *>::iterator it = chans.begin(); it != chans.end(); ++it) {
+				Channel *ch = it->second;
+				if (!ch)
+					continue;
+				ch->rmClient(c);
+				if (ch->getClients().empty()) {
+					// deletar canal vazio
+					for (size_t j = 0; j < channels.size(); ++j) {
+						if (channels[j] == ch) {
+							delete channels[j];
+							channels.erase(channels.begin() + j);
+							break;
+						}
+					}
+				}
+			}
+			// agora é seguro deletar o Client
 			std::cout << RED << "[clearClients] Deleting fd " << fd << RESET << std::endl;
-			delete clients[i];
+			delete c;
 			clients.erase(clients.begin() + i);
 			break ;
 		}
@@ -237,9 +339,6 @@ Server::~Server(){
 	for (size_t i = 0; i < channels.size(); ++i) // libera os ponteiros no destrutor de Serve
 		delete channels[i];
 	channels.clear();
-	for (size_t i = 0; i < clients.size(); ++i){
-			delete (clients[i]);
-	}
-	clients.clear();
+	closeFds();
 }
 
