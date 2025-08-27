@@ -28,15 +28,18 @@ void Server::cmdPASS(Client *cli, std::string line) {
 	iss >> cmd >> pass;
 
 	if (cli->get_is_registered()) {
-		sendMsg(cli->getFd(), ":server 462 :You are already registered\r\n", 42);
+		std::string msg = ":server 462 : You may not reregister\r\n";
+		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;}
 	if (pass.empty()) {
-		sendMsg(cli->getFd(), ":server 461 :No password given\r\n", 33);
+		std::string msg = ":server 461 :No password given\r\n";
+		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;}
 	if (pass != this->get_pass()) {
-		sendMsg(cli->getFd(), ":server 464 :Password incorrect\r\n", 34);
-		close(cli->getFd());
-		clearClients(cli->getFd());
+		std::string msg = ":server 464 :Password incorrect\r\n";
+		sendMsg(cli->getFd(), msg.c_str(), msg.size());
+		cli->set_want_close(true); // fecha assim que a fila esvaziar
+		enableWriteEvent(cli->getFd());
 		return;}
 	if (cli->get_regist_steps() == 3)
 		cli->confirm_regist_step(this);
@@ -49,7 +52,8 @@ void Server::cmdNICK(Client *cli, std::string line) {
 
 	iss >> cmd >> nick;
 	if (nick.empty()) {
-		sendMsg(cli->getFd(), ":server 431 :No nickname given\r\n", 33);
+		std::string msg = ":server 431 :No nickname given\r\n";
+		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;
 	}
 
@@ -80,13 +84,14 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	std::string cmd, user, unused, asterisk, realname;
 
 	if (cli->get_is_registered()) {
-		sendMsg(cli->getFd(), ":server 462 :You may not reregister\r\n", 38);
+		std::string msg = ":server 462 : You may not reregister\r\n";
+		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;
 	}
 	iss >> cmd >> user >> unused >> asterisk;
 	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
 	// como nao vamos nos aprofundar muito, nao precisamos salvar nada alem do user. 
-	if (user.empty() || unused.empty() || unused != "0" || asterisk.empty() || asterisk != "*") 
+	if (user.empty()) //|| unused.empty() || unused != "0" || asterisk.empty() || asterisk != "*") 
 		return ERR_NEEDMOREPARAMS(cli, "USER");
 	if (cli->get_regist_steps() < 3) {
 		cli->set_username(user);
@@ -186,8 +191,8 @@ void Server::cmdQUIT(Client *cli, std::string line){
 	}
 
 	sendMsg(cli->getFd(), quit_msg.c_str(), quit_msg.size());
-	close(cli->getFd());
-	clearClients(cli->getFd());
+	cli->set_want_close(true);
+	enableWriteEvent(cli->getFd());
 }
 
 void Server::cmdPRIVMSG(Client *cli, std::string line) {
