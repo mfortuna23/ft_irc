@@ -55,6 +55,6 @@ void	ERR_NOTREGISTERED(Client *cli);
 void	ERR_NEEDMOREPARAMS(Client *cli, std::string cmd);
 void	ERR_BADCHANMASK(Client *cli, std::string channel);
 void	ERR_CHANOPRIVSNEEDED(Client *cli, std::string chan);
-
+void	ERR_PASSWDMISMATCH(Client *cli);
 
 #endif
