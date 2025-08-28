@@ -5,14 +5,12 @@ void set_nonblocking(int fd) {
 }
 
 void sendMsg(int fd, const char *buffer, size_t len){
-	size_t total_sent = 0;
-
-	while (total_sent < len) {
-		int sent = send(fd, buffer + total_sent, len - total_sent, 0);
-        if (sent <= 0)
-            return ;
-        total_sent += sent;
-    }
+	// Agora, toda escrita passa pelo poll() do servidor:
+	// apenas colocamos na fila de saída e habilitamos POLLOUT.
+	Server* s = Server::getInstance(); // para termos acesso ao objeto do tipo server que ja estamos usando.
+	if (!s || fd < 0 || !buffer || len == 0)
+		return;
+	s->enqueueSend(fd, buffer, len);
 }
 
 std::string startMsg(Client *cli){
