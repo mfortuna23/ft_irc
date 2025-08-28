@@ -91,7 +91,7 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	iss >> cmd >> user >> unused >> asterisk;
 	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
 	// como nao vamos nos aprofundar muito, nao precisamos salvar nada alem do user. 
-	if (user.empty() || unused.empty() || asterisk.empty() || realname.empty()) //é tudo ignorado, mas tem que existir ...
+	if (user.empty()) //|| unused.empty() || unused != "0" || asterisk.empty() || asterisk != "*") 
 		return ERR_NEEDMOREPARAMS(cli, "USER");
 	if (cli->get_regist_steps() < 3) {
 		cli->set_username(user);
@@ -593,6 +593,7 @@ void Server::cmdINVITE(Client *cli, std::string line) {
         sendMsg(target->getFd(), out.c_str(), out.size());
     }
 }
+
 
 void Server::cmdTOPIC(Client *cli, std::string line){
 	std::istringstream iss(line);

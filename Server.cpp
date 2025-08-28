@@ -214,8 +214,6 @@ void Server::recvNewData(int fd)
 }
 
 void Server::handleCommand(Client *cli, std::string line){
-	if (line.empty()) // nao precisamos de lidar
-		return ;
 	std::string cmds[17] = {"PASS", "NICK", "USER", "CAP", "QUIT", "PONG", "PING", "JOIN", "KICK",
 	"INVITE", "TOPIC", "MODE", "PRIVMSG", "NOTICE", "PART", "WHO", "WHOIS"};
 	void (Server::*fCmds[17])(Client *, std::string) = {&Server::cmdPASS, &Server::cmdNICK, &Server::cmdUSER, 
@@ -231,6 +229,8 @@ void Server::handleCommand(Client *cli, std::string line){
 			return ;
 		}
 	}
+	if (line.empty()) // nao precisamos de dar erro em empty lines
+		return ;
 	std::string response = ":server 421 " + cli->get_nick() + (line.empty() ? "" : line) + " :Unknown command\r\n";
 	sendMsg(cli->getFd(), response.c_str(), response.size());
 }
