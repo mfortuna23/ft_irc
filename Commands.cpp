@@ -28,7 +28,7 @@ void Server::cmdPASS(Client *cli, std::string line) {
 	iss >> cmd >> pass;
 
 	if (cli->get_is_registered()) {
-		std::string msg = ":server 462 : You may not reregister\r\n";
+		std::string msg = ":server 462 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " :You may not reregister\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;}
 	if (pass.empty()) {
@@ -56,6 +56,8 @@ void Server::cmdNICK(Client *cli, std::string line) {
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;
 	}
+	if (cli->get_regist_steps() == 3)
+		return ERR_PASSWDMISMATCH(cli);
 
 	// bloqueio de nicks duplicados (433)
 	Client* holder = getClientByNick(nick);
@@ -71,10 +73,9 @@ void Server::cmdNICK(Client *cli, std::string line) {
 		std::string msg = ":" + old_nick + " NICK :" + nick + "\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.length());
 	}
-	if (cli->get_regist_steps() < 3)
-		cli->set_nickname(nick);
-	else
-		return ERR_NOTREGISTERED(cli);
+
+	cli->set_nickname(nick);
+
 	tryFinishRegistration(cli);
 }
 
@@ -84,22 +85,31 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	std::string cmd, user, unused, asterisk, realname;
 
 	if (cli->get_is_registered()) {
-		std::string msg = ":server 462 : You may not reregister\r\n";
+		std::string msg = ":server 462 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " :You may not reregister\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;
 	}
+	if (cli->get_regist_steps() == 3)
+		return ERR_PASSWDMISMATCH(cli);
+
 	iss >> cmd >> user >> unused >> asterisk;
-	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos, mesmo que contenha espaços.
+	std::getline(iss, realname); //getline serve para capturar tudo que vem depois dos 4 primeiros campos (tudo que vem apos asterisk), mesmo que contenha espaços.
+
+	while (!realname.empty() && (realname[0] == ' ' || realname[0] == '\t')) // remover espaço inicial
+		realname.erase(0, 1);
+	if (!realname.empty() && realname[0] == ':') // remover o ':' inicial
+		realname.erase(0, 1);
+	// removo qualquer espaço apos ':' para garantir que nao haja realnames apenas feitos de espaços.
+	while (!realname.empty() && (realname[0] == ' ' || realname[0] == '\t'))
+		realname.erase(0, 1);
+	// depois dessas verificacoes agora sim temos o realname.
 	// como nao vamos nos aprofundar muito, nao precisamos salvar nada alem do user. 
 	if (user.empty() || unused.empty() || asterisk.empty() || realname.empty()) //é tudo ignorado, mas tem que existir ...
 		return ERR_NEEDMOREPARAMS(cli, "USER");
-	if (cli->get_regist_steps() < 3) {
-		cli->set_username(user);
-		std::string msg = "Your username now is " + cli->get_user() + "\r\n"; 
-		sendMsg(cli->getFd(), msg.c_str(), msg.size());
-	}
-	else
-		return ERR_NOTREGISTERED(cli);
+	cli->set_username(user);
+	std::string msg = "Your username now is " + cli->get_user() + "\r\n"; 
+	sendMsg(cli->getFd(), msg.c_str(), msg.size());
+
 	tryFinishRegistration(cli);
 }
 
