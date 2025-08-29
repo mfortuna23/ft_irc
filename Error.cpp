@@ -43,8 +43,8 @@ void	ERR_CHANOPRIVSNEEDED(Client *cli, std::string chan){
 }
 
 void	ERR_PASSWDMISMATCH(Client *cli){
-	std::ostringstream err;
-	err << ":server 464 " << (cli->get_nick().empty() ? "*" : cli->get_nick()) << " :Password mismatch\r\n";
-	sendMsg(cli->getFd(), err.str().c_str(), err.str().size());
+	std::string err;
+	err = ":server 464 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " :Password must be sent first\r\n";
+	sendMsg(cli->getFd(), err.c_str(), err.size());
 	return;
 }
