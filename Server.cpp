@@ -9,7 +9,7 @@ Server::Server() : ServSockFd (-1) {
 
 void Server::serverInit(int newPort, std::string newPassword){
 	if (newPort < 6665 || newPort > 6669) //so aceitamos ports recomendados
-		throw (std::runtime_error("invalid port"));
+		throw (std::runtime_error("Invalid port\nTry from 6666 to 6668"));
 	if (newPassword.empty())
 		throw (std::runtime_error("invalid password"));
 	port = newPort;
@@ -46,23 +46,15 @@ void Server::serverInit(int newPort, std::string newPassword){
 					disableWriteEvent(fd);
 					continue;
 				}
-				bool fatal = false;
 				while (cli && !cli->get_outbox().empty()){
 					ssize_t n = send(fd, cli->get_outbox().c_str(), cli->get_outbox().size(), 0);
 					if (n > 0) {
 						cli->get_outbox().erase(0, static_cast<size_t>(n));
-					} else {
-						if (errno == EAGAIN || errno == EWOULDBLOCK)
-							break; // tenta de novo na próxima iteração
-						// erro fatal -> encerra
-						std::cout << RED << "Send error on fd " << fd << RESET << std::endl;
-						cmdQUIT(cli, "quit");
-						fatal = true;
-						break;
+						continue;
 					}
+					else
+						break;
 				}
-				if (fatal)
-					continue; // fds[] mudou, segue o loop externo
 				cli = getClientByFd(fd);
 				if (cli && cli->get_outbox().empty()){
 					disableWriteEvent(fd);
@@ -139,7 +131,7 @@ void Server::acceptNewClient(){
 																				// accept preenche client_addr.sin_addr → IP do cliente
 																				// e preenche client_addr.sin_port → porta usada pelo cliente
 	if (client_fd < 0)
-		throw(std::runtime_error("failed to accept client"));
+		return; // se enviarmos um throw nesta condicao o servidor fecha junto com o client, só devemos retornar.
 	set_nonblocking(client_fd);
 
 	// adiciona fd ao poll
@@ -175,11 +167,13 @@ void Server::recvNewData(int fd)
 		return;
 	char tmp_buffer[BUFFER_SIZE];
 	ssize_t bytes = recv(fd, tmp_buffer, BUFFER_SIZE, 0); // n bytes lidos
-	if (bytes <= 0) {
+	if (bytes == 0) { // se retornar 0 -> o fd fechou o lado da escrita. É um sinal definitivo de fim de conexão
 		std::cout << "Client disconnected: fd " << fd << std::endl;
 		cmdQUIT(cli, "quit");
 		return;
 	}
+	if (bytes < 0) // menor que 0 -> falha transitória/indefinida em non-blocking. O projeto nao deixa verificar com errno.
+		return; // retorna e espera o próximo ciclo do poll(); Se for realmente terminal, o loop já trata em POLLHUP|POLLERR|POLLNVAL
 	cli->get_buffer().append(tmp_buffer, bytes);
 
 	while (true){
@@ -231,7 +225,7 @@ void Server::handleCommand(Client *cli, std::string line){
 			return ;
 		}
 	}
-	std::string response = ":server 421 " + cli->get_nick() + (line.empty() ? "" : line) + " :Unknown command\r\n";
+	std::string response = ":server 421 " + cli->get_nick() + (line.empty() ? "" : " " + line) + " :Unknown command\r\n";
 	sendMsg(cli->getFd(), response.c_str(), response.size());
 }
 
