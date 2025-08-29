@@ -28,7 +28,7 @@ void Server::cmdPASS(Client *cli, std::string line) {
 	iss >> cmd >> pass;
 
 	if (cli->get_is_registered()) {
-		std::string msg = ":server 462 : You may not reregister\r\n";
+		std::string msg = ":server 462 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " :You may not reregister\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;}
 	if (pass.empty()) {
