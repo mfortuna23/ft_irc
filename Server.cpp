@@ -21,7 +21,7 @@ void Server::serverInit(int newPort, std::string newPassword){
 	Server::instance = this;
 	while (running){
 		if (poll(&fds.at(0), fds.size(), -1) < 0) {
-			if (errno == EINTR) break; 
+			if (!running) break ;
 			throw (std::runtime_error("Poll() failed"));
 		}
 		for (size_t i = 0; i < fds.size(); i++)

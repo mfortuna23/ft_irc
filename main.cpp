@@ -10,6 +10,7 @@ int main (int argc, char **argv){
 	try{
 		signal(SIGINT, Server::signalHandler);
 		signal(SIGQUIT, Server::signalHandler);
+		signal(SIGTERM, Server::signalHandler);
 		signal(SIGPIPE, SIG_IGN);
 		myServer.serverInit(std::atoi(argv[1]), argv[2]);
 	}
