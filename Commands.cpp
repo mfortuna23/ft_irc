@@ -31,10 +31,8 @@ void Server::cmdPASS(Client *cli, std::string line) {
 		std::string msg = ":server 462 " + (cli->get_nick().empty() ? "*" : cli->get_nick()) + " :You may not reregister\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
 		return;}
-	if (pass.empty()) {
-		std::string msg = ":server 461 :No password given\r\n";
-		sendMsg(cli->getFd(), msg.c_str(), msg.size());
-		return;}
+	if (pass.empty())
+		return ERR_NEEDMOREPARAMS(cli, "PASS");
 	if (pass != this->get_pass()) {
 		std::string msg = ":server 464 :Password incorrect\r\n";
 		sendMsg(cli->getFd(), msg.c_str(), msg.size());
@@ -244,8 +242,9 @@ void Server::cmdPRIVMSG(Client *cli, std::string line) {
 	} else {
 		Client* dest = getClientByNick(target);
 		if (!dest) {
-			sendMsg(cli->getFd(), "ERROR :No such nick/channel\r\n", 30);
-			return;
+			std::string err = ":server 401 " + cli->get_nick() + " " + target + " :No such nick\r\n";
+        	sendMsg(cli->getFd(), err.c_str(), err.size());
+        	return;
 		}
 		std::ostringstream msg;
 		msg << ":" << cli->get_nick() << " PRIVMSG " << target << " :" << message << "\r\n";
@@ -524,7 +523,7 @@ void Server::cmdKICK(Client *cli, std::string line) {
 
 	Client *v = getClientByNick(victim);
     if (!v) {
-        std::string err = ":server 401 " + cli->get_nick() + " " + victim + " :No such nick/channel\r\n";
+        std::string err = ":server 401 " + cli->get_nick() + " " + victim + " :No such nick\r\n";
         sendMsg(cli->getFd(), err.c_str(), err.size());
         return;
     }
@@ -577,7 +576,7 @@ void Server::cmdINVITE(Client *cli, std::string line) {
 
     Client *target = getClientByNick(nick);
     if (!target) {
-        std::string err = ":server 401 " + cli->get_nick() + " " + nick + " :No such nick/channel\r\n";
+        std::string err = ":server 401 " + cli->get_nick() + " " + nick + " :No such nick\r\n";
         sendMsg(cli->getFd(), err.c_str(), err.size());
         return;
     }

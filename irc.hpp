@@ -17,7 +17,6 @@
 # include <signal.h>
 # include <cstring>
 # include <sstream> 
-# include <cerrno>
 # include <vector>
 # include <cstdlib>
 # include <map>
