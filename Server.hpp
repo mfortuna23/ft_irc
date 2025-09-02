@@ -71,6 +71,7 @@ class Server {
 		void enqueueSend(int fd, const char* buf, size_t len);
 		void enableWriteEvent(int fd);
 		void disableWriteEvent(int fd);
+		void sendMsgAll(std::string msg);
 
 		~Server();
 } ;

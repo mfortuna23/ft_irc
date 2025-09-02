@@ -49,7 +49,6 @@ Channel::Channel(std::string oName, Client *cli){
 	msg << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 	    << " JOIN :" << name << "\r\n";
 	sendMsgChannel(msg.str());
-	//sendNamesTo(cli);
 }
 
 Channel::Channel(std::string oName, Client *cli, std::string pwd){
@@ -70,7 +69,6 @@ Channel::Channel(std::string oName, Client *cli, std::string pwd){
 	msg << ":" << cli->get_nick() << "!~" << cli->get_user() << "@" << cli->getIp()
 	    << " JOIN :" << name << "\r\n";
 	sendMsgChannel(msg.str());
-	//sendNamesTo(cli);
 }
 
 Channel &Channel::operator=(const Channel &other){
@@ -184,7 +182,6 @@ bool Channel::rmClient(Client *other){
 		m << ":server MODE " << name << " +o " << newOp->get_nick() << "\r\n";
 		sendMsgChannel(m.str());
 		host = newOp;
-		//sendNamesToAll();
 	}
 	return true ;
 }
@@ -198,7 +195,6 @@ void	Channel::sendMsgChannel(std::string msg){
 	}
 }
 
-//static std::string itos(size_t n){ std::ostringstream o; o<<n; return o.str(); }
 
 void Channel::modePNA(Client *cli, char mode){
 	std::ostringstream b;
@@ -279,7 +275,7 @@ void Channel::modePWA(Client *cli, char mode, std::string args){
 	}
 
 	if (mode == 'l'){
-		if (args.empty() || !checkNbr(args))
+		if (args.empty() || !checkNbr(args) || std::atoi(args.c_str()) == 0)
 			return ERR_NEEDMOREPARAMS(cli, "MODE (+l)");
 		size_t newLim = std::max<size_t>(1, (size_t)std::atoi(args.c_str()));
 		if (newLim == limit) return;

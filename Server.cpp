@@ -329,6 +329,15 @@ Client* Server::getClientByNick(const std::string& nick) {
 	return NULL;
 }
 
+void Server::sendMsgAll(std::string msg){
+	std::vector<Client*>::iterator it;
+	for (it = clients.begin(); it != clients.end(); ++it) {
+		Client* client = *it; 
+		if (client)
+			sendMsg(client->getFd(), msg.c_str(), msg.size());
+	}
+}
+
 Server::~Server(){
 	for (size_t i = 0; i < channels.size(); ++i) // libera os ponteiros no destrutor de Serve
 		delete channels[i];
