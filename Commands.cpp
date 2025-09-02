@@ -69,11 +69,11 @@ void Server::cmdNICK(Client *cli, std::string line) {
 	std::string old_nick = cli->get_nick();
 	if (!old_nick.empty() && old_nick != nick){
 		std::string msg = ":" + old_nick + " NICK :" + nick + "\r\n";
-		sendMsg(cli->getFd(), msg.c_str(), msg.length());
+		cli->set_nickname(nick);
+		sendMsgAll(msg);
+		return ;
 	}
-
 	cli->set_nickname(nick);
-
 	tryFinishRegistration(cli);
 }
 
@@ -107,7 +107,6 @@ void Server::cmdUSER(Client *cli, std::string line) {
 	cli->set_username(user);
 	std::string msg = "Your username now is " + cli->get_user() + "\r\n"; 
 	sendMsg(cli->getFd(), msg.c_str(), msg.size());
-
 	tryFinishRegistration(cli);
 }
 
@@ -257,26 +256,21 @@ void Server::cmdNOTICE(Client *cli, std::string line) {
 	std::string cmd, target, message;
 
 	iss >> cmd >> target;
-
 	if (target.empty())
 		return; // NOTICE nunca envia mensagem de erro, testado no irc libera chat
-
 	size_t pos = line.find(" :"); // verificamos primeiro a partir do identificador de mensagem
 	if (pos != std::string::npos)
 		message = line.substr(pos + 2); // removemos o identificador de mensagem
 	else
 		return; // sem mensagem, nao faz nada
-
 	if (message.empty())
 		return;
-
 	if (target[0] == '#' || target[0] == '&') {
 		if (!checkChannelName(target))
 			return ERR_BADCHANMASK(cli, target);
 		Channel* chan = getChannelByName(target);
 		if (!chan)
 			return ERR_NOSUCHCHANNEL(cli, target);
-
 		std::map<int, Client*> clients = chan->getClients(); // busca todos os clientes atualmente conectados no canal
 		for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			if (it->second->getFd() != cli->getFd()) {
@@ -298,20 +292,16 @@ void Server::cmdNOTICE(Client *cli, std::string line) {
 void Server::cmdPING(Client *cli, std::string line) {
 	std::string token;
 	std::istringstream iss(line);
-	iss >> token; // ignora "PING"
 
+	iss >> token; // ignora "PING"
 	std::string payload;
 	size_t pos = line.find(" :");
 	if (pos != std::string::npos)
 		payload = line.substr(pos + 2);
-	else {
-		// fallback: tenta pegar o segundo argumento, mesmo sem :
+	else // fallback: tenta pegar o segundo argumento, mesmo sem :
 		iss >> payload;
-	}
-
 	if (payload.empty())
 		return; // PING sem argumento → ignorar
-
 	std::ostringstream reply;
 	reply << "PONG :" << payload << "\r\n";
 	sendMsg(cli->getFd(), reply.str().c_str(), reply.str().size());
@@ -337,7 +327,6 @@ void Server::cmdPART(Client *cli, std::string line){
     }
 
 	std::istringstream chanStream(channel);
-
 
 	Channel *tv;
 	while (std::getline(chanStream, channel, ',')) {
@@ -539,7 +528,6 @@ void Server::cmdKICK(Client *cli, std::string line) {
 
     ch->sendMsgChannel(out);
     ch->rmClient(v);
-
     // Se o canal ficou vazio, remove da lista do servidor (o kicker pode se kickar)
     if (ch->getClients().empty()) {
         for (size_t i = 0; i < channels.size(); ++i) {
