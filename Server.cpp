@@ -28,6 +28,7 @@ void Server::serverInit(int newPort, std::string newPassword){
 		{
 			if (fds[i].revents & (POLLHUP | POLLERR | POLLNVAL)) {
 				int fd = fds[i].fd;
+				cmdQUIT(getClientByFd(fd), "Disconnect");
 				close(fd);
 				clearClients(fd);
 				continue;
