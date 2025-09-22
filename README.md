@@ -3,9 +3,9 @@
 ## 👥 Team
 This project was developed by:
 
-[Alex-mfs]((https://github.com/Alex-mfs))
+[Alex-mfs](https://github.com/Alex-mfs)
 
-[mfortuna]((https://github.com/mfortuna23))
+[mfortuna](https://github.com/mfortuna23)
 
 ## 📖 Overview
 
@@ -48,7 +48,7 @@ This project was developed by:
 
 ### Building
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/mfortuna23/ft_irc
 cd ft_irc
 ```
 ### Make
