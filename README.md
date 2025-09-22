@@ -2,8 +2,10 @@
 
 ## 👥 Team
 This project was developed by:
+
 [mfortuna]((https://github.com/mfortuna23))
-[alfreire]((https://github.com/Alex-mfs))
+
+[Alex-mfs]((https://github.com/Alex-mfs))
 
 ## 📖 Overview
 
