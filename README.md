@@ -1,8 +1,6 @@
 # FT_IRC
 
-![IRC Logo](https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/IRCcloud_icon.png/64px-IRCcloud_icon.png)
-
-##👥 Team
+## 👥 Team
 This project was developed by:
 ![mfortuna]((https://github.com/mfortuna23))
 ![alfreire]((https://github.com/Alex-mfs))
@@ -82,7 +80,7 @@ ft_irc/
 └── README.md           # This file
 ```
 
-##🔧 Technical Details
+## 🔧 Technical Details
 I/O Model: Single-threaded with poll() for multiplexing
 
 Protocol: RFC 1459/2812 compliant IRC protocol
@@ -91,14 +89,15 @@ Memory: Manual memory management with proper cleanup
 
 Error Handling: Comprehensive error codes and recovery
 
-#📚 Resources
-RFC 1459: IRC Protocol
+# 📚 Resources
 
-RFC 2812: Modern IRC
+![RFC 1459: IRC Protocol](https://datatracker.ietf.org/doc/html/rfc1459)
 
-IRC Numeric Replies
+![RFC 2812: Modern IRC](https://datatracker.ietf.org/doc/html/rfc2812)
 
-#⚠️ Notes
+![IRC Docs Horse](https://modern.ircdocs.horse)
+
+# ⚠️ Notes
 Developed following 42 School coding standards
 
 Requires C++98 compatibility
