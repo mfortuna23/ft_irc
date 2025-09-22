@@ -1,4 +1,4 @@
-# ft_irc
+# FT_IRC
 
 ![IRC Logo](https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/IRCcloud_icon.png/64px-IRCcloud_icon.png)
 
@@ -59,7 +59,7 @@ Running the Server
 ./ircserver 6667 12345
 ```
 Connecting Clients
-bash
+```bash
 # Using HexChat:
 # Server: localhost:6667, Password: 12345
 
@@ -68,8 +68,9 @@ nc localhost 6667
 PASS 12345
 NICK yournick
 USER youruser 0 * :Your Name
-🏗️ Project Structure
-text
+```
+##🏗️ Project Structure
+```text
 ft_irc/
 ├── src/                 # Source files
 │   ├── Server.cpp       # Main server logic
@@ -79,14 +80,9 @@ ft_irc/
 ├── includes/            # Header files
 ├── Makefile            # Build configuration
 └── README.md           # This file
-👥 Team Members
-[Team Member 1] - Core server architecture, I/O multiplexing
+```
 
-[Team Member 2] - Channel system, mode implementation
-
-[Team Member 3] - Command parsing, client communication
-
-🔧 Technical Details
+##🔧 Technical Details
 I/O Model: Single-threaded with poll() for multiplexing
 
 Protocol: RFC 1459/2812 compliant IRC protocol
