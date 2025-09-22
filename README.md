@@ -3,9 +3,9 @@
 ## 👥 Team
 This project was developed by:
 
-[mfortuna]((https://github.com/mfortuna23))
-
 [Alex-mfs]((https://github.com/Alex-mfs))
+
+[mfortuna]((https://github.com/mfortuna23))
 
 ## 📖 Overview
 
@@ -91,7 +91,7 @@ Memory: Manual memory management with proper cleanup
 
 Error Handling: Comprehensive error codes and recovery
 
-# 📚 Resources
+## 📚 Resources
 
 [RFC 1459: IRC Protocol](https://datatracker.ietf.org/doc/html/rfc1459)
 
@@ -99,13 +99,13 @@ Error Handling: Comprehensive error codes and recovery
 
 [IRC Docs Horse](https://modern.ircdocs.horse)
 
-# ⚠️ Notes
+## ⚠️ Notes
 Developed following 42 School coding standards
 
 Requires C++98 compatibility
 
 Includes comprehensive error handling and memory management
 
-# 📄 License
+## 📄 License
 This project is part of the 42 School curriculum. All rights reserved.
 
