@@ -2,8 +2,8 @@
 
 ## 👥 Team
 This project was developed by:
-![mfortuna]((https://github.com/mfortuna23))
-![alfreire]((https://github.com/Alex-mfs))
+[mfortuna]((https://github.com/mfortuna23))
+[alfreire]((https://github.com/Alex-mfs))
 
 ## 📖 Overview
 
@@ -67,7 +67,7 @@ PASS 12345
 NICK yournick
 USER youruser 0 * :Your Name
 ```
-##🏗️ Project Structure
+## 🏗️ Project Structure
 ```text
 ft_irc/
 ├── src/                 # Source files
@@ -91,11 +91,11 @@ Error Handling: Comprehensive error codes and recovery
 
 # 📚 Resources
 
-![RFC 1459: IRC Protocol](https://datatracker.ietf.org/doc/html/rfc1459)
+[RFC 1459: IRC Protocol](https://datatracker.ietf.org/doc/html/rfc1459)
 
-![RFC 2812: Modern IRC](https://datatracker.ietf.org/doc/html/rfc2812)
+[RFC 2812: Modern IRC](https://datatracker.ietf.org/doc/html/rfc2812)
 
-![IRC Docs Horse](https://modern.ircdocs.horse)
+[IRC Docs Horse](https://modern.ircdocs.horse)
 
 # ⚠️ Notes
 Developed following 42 School coding standards
@@ -104,6 +104,6 @@ Requires C++98 compatibility
 
 Includes comprehensive error handling and memory management
 
-#📄 License
+# 📄 License
 This project is part of the 42 School curriculum. All rights reserved.
 
