@@ -64,32 +64,12 @@ Connecting Clients
 # Server: localhost:6667, Password: 12345
 
 # Using netcat:
-nc localhost 6667
+nc -C localhost 6667
 PASS 12345
 NICK yournick
 USER youruser 0 * :Your Name
 ```
-## 🏗️ Project Structure
-```text
-ft_irc/
-├── src/                 # Source files
-│   ├── Server.cpp       # Main server logic
-│   ├── Client.cpp       # Client management
-│   ├── Channel.cpp      # Channel system
-│   └── Commands.cpp     # Command handlers
-├── includes/            # Header files
-├── Makefile            # Build configuration
-└── README.md           # This file
-```
 
-## 🔧 Technical Details
-I/O Model: Single-threaded with poll() for multiplexing
-
-Protocol: RFC 1459/2812 compliant IRC protocol
-
-Memory: Manual memory management with proper cleanup
-
-Error Handling: Comprehensive error codes and recovery
 
 ## 📚 Resources
 
@@ -99,12 +79,7 @@ Error Handling: Comprehensive error codes and recovery
 
 [IRC Docs Horse](https://modern.ircdocs.horse)
 
-## ⚠️ Notes
-Developed following 42 School coding standards
 
-Requires C++98 compatibility
-
-Includes comprehensive error handling and memory management
 
 ## 📄 License
 This project is part of the 42 School curriculum. All rights reserved.
